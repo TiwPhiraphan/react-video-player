@@ -47,6 +47,8 @@ export default function VideoPlayer({ source, title }: VideoPlayerProps) {
 	const wrapperRef = useRef<HTMLDivElement>(null)
 	const lastSeekTap = useRef(0)
 
+	const rafRef = useRef<number | null>(null)
+
 	const [isMobile, setIsMobile] = useState(true)
 	const [seekStack, setSeekStack] = useState(0)
 	const [seekMode, setSeekMode] = useState(false)
@@ -61,6 +63,11 @@ export default function VideoPlayer({ source, title }: VideoPlayerProps) {
 	const [volume, setVolume] = useState(1)
 	const [duration, setDuration] = useState(0)
 	const [currentTime, setCurrentTime] = useState(0)
+	const [speed, setSpeed] = useState(1)
+	const [isSetting, setIsSetting] = useState(false)
+	const [openAreaSetting, setOpenAreaSetting] = useState<'speed' | null>(null)
+	const [hoverTime, setHoverTime] = useState<number | null>(null)
+	const [hoverX, setHoverX] = useState(0)
 
 	useEffect(() => {
 		setIsPlayFirst(false)
@@ -70,6 +77,9 @@ export default function VideoPlayer({ source, title }: VideoPlayerProps) {
 		setCurrentTime(0)
 		setSeekStack(0)
 		setSeekMode(false)
+		setIsRanging(false)
+		setIsSetting(false)
+		setOpenAreaSetting(null)
 	}, [videoLink])
 
 	useEffect(() => {
@@ -81,6 +91,10 @@ export default function VideoPlayer({ source, title }: VideoPlayerProps) {
 			if (seeking.current) {
 				clearTimeout(seeking.current)
 				seeking.current = null
+			}
+			if (rafRef.current) {
+				cancelAnimationFrame(rafRef.current)
+				rafRef.current = null
 			}
 		}
 	}, [])
@@ -460,147 +474,214 @@ export default function VideoPlayer({ source, title }: VideoPlayerProps) {
 		[isMobile, seekMode, seekAction]
 	)
 
+	function handleSpeed(pad: number) {
+		setSpeed(pad)
+		setIsSetting(false)
+		setOpenAreaSetting(null)
+	}
+
+	function toggleSettings() {
+		setIsRanging(!isRanging)
+		setIsSetting(!isSetting)
+		setOpenAreaSetting(null)
+	}
+
+	const handleRangeHover = (e: React.MouseEvent<HTMLInputElement>) => {
+		if (rafRef.current) return
+		const target = e.currentTarget
+		rafRef.current = requestAnimationFrame(() => {
+			rafRef.current = null
+			const rect = target.getBoundingClientRect()
+			const x = e.clientX - rect.left
+			const percent = Math.min(Math.max(x / rect.width, 0), 1)
+			const time = percent * duration
+			setHoverX(x)
+			setHoverTime(time)
+		})
+	}
+
+	const handleRangeLeave = () => {
+		setHoverTime(null)
+	}
+
+	useEffect(() => {
+		setCallback(videoRef, (video) => {
+			video.playbackRate = speed
+		})
+	}, [speed])
+
 	return (
-		<div
-			className={style.wrapper}
-			ref={wrapperRef}
-			key={videoLink}
-			onMouseMove={handleMouseMove}
-			onMouseLeave={handleMouseLeave}>
-			<video
-				playsInline
-				preload='none'
-				ref={videoRef}
-				controls={false}
-				onTimeUpdate={handleTimeUpdate}
-				onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
-				onVolumeChange={(event) => setVolume(event.currentTarget.volume)}
-				onCanPlayThrough={() => setIsLoading(false)}
-				onWaiting={() => setIsLoading(true)}
-				onLoadStart={() => setIsEnded(false)}
-				onEnded={() => setIsEnded(true)}
-				onPlay={() => {
-					setIsEnded(false)
-					setIsPaused(false)
-					setIsPlayFirst(true)
-				}}
-				onPause={() => setIsPaused(true)}
-				className={style.video}>
-				<source src={videoLink} type={videoType} />
-			</video>
+		<div className={style.videoContainer} key={videoLink}>
 			<div
-				className={`${style.controller} ${isMobile ? (isPaused || isControlShown ? style.visit : style.invisit) : isPaused || isControlShown ? style.opacity1 : style.opacity0}`}>
-				<h1 className={style.title}>{title}</h1>
-				<div className={style.center} onClick={!isMobile ? togglePlay : undefined}>
-					<div onClick={() => handleDoubleSeek('-')} />
-					<div onClick={() => handleDoubleSeek('+')} />
-				</div>
-				<div className={style.controls}>
-					<div className={style.timeWrapper}>
-						<article>{formatTime(currentTime)}</article>
-						<div className={style.timeControl}>
-							<div className={style.backProcess} />
-							<div
-								className={style.progressBar}
-								style={{ width: `${bufferedProgressPercentage}%` }}
-							/>
+				className={style.wrapper}
+				ref={wrapperRef}
+				onMouseMove={handleMouseMove}
+				onMouseLeave={handleMouseLeave}>
+				<video
+					playsInline
+					preload='none'
+					ref={videoRef}
+					controls={false}
+					onTimeUpdate={handleTimeUpdate}
+					onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
+					onVolumeChange={(event) => setVolume(event.currentTarget.volume)}
+					onCanPlayThrough={() => setIsLoading(false)}
+					onWaiting={() => setIsLoading(true)}
+					onLoadStart={() => setIsEnded(false)}
+					onEnded={() => setIsEnded(true)}
+					onPlay={() => {
+						setIsEnded(false)
+						setIsPaused(false)
+						setIsPlayFirst(true)
+					}}
+					onPause={() => setIsPaused(true)}
+					className={style.video}>
+					<source src={videoLink} type={videoType} />
+				</video>
+				<div
+					className={`${style.controller} ${isMobile ? (isPaused || isControlShown ? style.visit : style.invisit) : isPaused || isControlShown ? style.opacity1 : style.opacity0}`}>
+					<h1 className={style.title}>
+						<p>{title}</p>
+					</h1>
+					<div className={style.center} onClick={!isMobile ? togglePlay : undefined}>
+						<div onClick={() => handleDoubleSeek('-')} />
+						<div onClick={() => handleDoubleSeek('+')} />
+					</div>
+					<div className={style.controls}>
+						<div className={style.timeWrapper}>
+							<article>{formatTime(currentTime)}</article>
+							<div className={style.timeControl}>
+								<div className={style.backProcess} />
+								<div
+									className={style.progressBar}
+									style={{ width: `${bufferedProgressPercentage}%` }}
+								/>
+								<div className={style.hoverTime} style={{ left: hoverX - 25, display: !hoverTime ? 'none' : undefined }}>
+									{formatTime(hoverTime || 0)}
+								</div>
+								<input
+									type='range'
+									step='any'
+									max={duration}
+									value={currentTime}
+									onFocus={(e) => e.currentTarget.blur()}
+									className={style.rangeTime}
+									onPointerDown={() => setIsRanging(true)}
+									onPointerUp={() => setIsRanging(false)}
+									onPointerCancel={() => setIsRanging(false)}
+									onChange={(event) =>
+										handleInputRange('time', +event.currentTarget.value)
+									}
+									onMouseLeave={handleRangeLeave}
+									onMouseMove={handleRangeHover}
+									style={{
+										backgroundImage: `linear-gradient(to right, #00b2ff ${progressPercentage}%, #0000 ${progressPercentage}%)`
+									}}
+								/>
+							</div>
+							<article>{formatTime(duration)}</article>
+						</div>
+						<div className={style.volumeWrapper}>
+							<button
+								type='button'
+								onClick={toggleMute}
+								onFocus={(e) => e.currentTarget.blur()}>
+								<Icon name={isMuted || volume === 0 ? 'muted' : 'volume'} />
+							</button>
 							<input
+								max={1}
 								type='range'
 								step='any'
-								max={duration}
-								value={currentTime}
+								value={isMuted ? 0 : volume}
 								onFocus={(e) => e.currentTarget.blur()}
-								className={style.rangeTime}
-								onPointerDown={() => setIsRanging(true)}
-								onPointerUp={() => setIsRanging(false)}
-								onPointerCancel={() => setIsRanging(false)}
-								onChange={(event) =>
-									handleInputRange('time', +event.currentTarget.value)
+								className={
+									style.rangeVolume + (isMobile ? ` ${style.hideOnMobile}` : '')
 								}
 								style={{
-									backgroundImage: `linear-gradient(to right, #00b2ff ${progressPercentage}%, #0000 ${progressPercentage}%)`
+									backgroundImage: `linear-gradient(to right, #00b2ff ${!isMuted ? volume * 100 : 0}%, #fff5 ${!isMuted ? volume * 100 : 0}%)`
 								}}
+								onChange={(event) =>
+									handleInputRange('volume', +event.currentTarget.value)
+								}
 							/>
 						</div>
-						<article>{formatTime(duration)}</article>
+						<div>
+							<button
+								type='button'
+								onClick={togglePictureInPicture}
+								onFocus={(e) => e.currentTarget.blur()}>
+								<Icon name='pip' />
+							</button>
+						</div>
+						<div>
+							<button
+								type='button'
+								onClick={toggleFullScreen}
+								onFocus={(e) => e.currentTarget.blur()}>
+								<Icon name={isFullscreen ? 'unfullscreen' : 'fullscreen'} />
+							</button>
+						</div>
+						<div className={style.btnSetting}>
+							<button
+								type='button'
+								onClick={toggleSettings}
+								onFocus={(e) => e.currentTarget.blur()}>
+								<Icon name='setting' />
+							</button>
+							<div className={style.customSelect} style={{ display: !isSetting ? 'none' : undefined }}>
+								<div onClick={() => setOpenAreaSetting(openAreaSetting === 'speed' ? null : 'speed')}>ความเร็วในการเล่น</div>
+								{openAreaSetting === 'speed' && (
+									<ul>
+										<li style={{ backgroundColor: speed === 0.25 ? '#eeee' : undefined }} onClick={() => handleSpeed(0.25)}>0.25</li>
+										<li style={{ backgroundColor: speed === 0.5 ? '#eeee' : undefined }} onClick={() => handleSpeed(0.5)}>0.5</li>
+										<li style={{ backgroundColor: speed === 0.75 ? '#eeee' : undefined }} onClick={() => handleSpeed(0.75)}>0.75</li>
+										<li style={{ backgroundColor: speed === 1 ? '#eeee' : undefined }} onClick={() => handleSpeed(1)}>1</li>
+										<li style={{ backgroundColor: speed === 1.25 ? '#eeee' : undefined }} onClick={() => handleSpeed(1.25)}>1.25</li>
+										<li style={{ backgroundColor: speed === 1.5 ? '#eeee' : undefined }} onClick={() => handleSpeed(1.5)}>1.5</li>
+										<li style={{ backgroundColor: speed === 1.75 ? '#eeee' : undefined }} onClick={() => handleSpeed(1.75)}>1.75</li>
+										<li style={{ backgroundColor: speed === 2 ? '#eeee' : undefined }} onClick={() => handleSpeed(2)}>2</li>
+									</ul>
+								)}
+							</div>
+						</div>
 					</div>
-					<div className={style.volumeWrapper}>
+					<Icon
+						name={isLoading ? 'hide' : isEnded ? 'restart' : isPaused ? 'play' : 'pause'}
+						bigger
+						className={style.absoluteCenter}
+						onClick={togglePlay}
+					/>
+				</div>
+				{seekStack < 0 && (
+					<div inert key={seekStack} className={style.seekLeft}>
+						{seekStack.toString()}
+					</div>
+				)}
+				{seekStack > 0 && (
+					<div
+						inert
+						key={seekStack}
+						className={style.seekRight}>{`+${seekStack.toString()}`}</div>
+				)}
+				{isLoading && (
+					<div className={style.loadingContainer}>
+						<Icon name='loading' />
+					</div>
+				)}
+				{!isPlayFirst && (
+					<div className={style.playFirstContainer}>
 						<button
 							type='button'
-							onClick={toggleMute}
-							onFocus={(e) => e.currentTarget.blur()}>
-							<Icon name={isMuted || volume === 0 ? 'muted' : 'volume'} />
-						</button>
-						<input
-							max={1}
-							type='range'
-							step='any'
-							value={isMuted ? 0 : volume}
 							onFocus={(e) => e.currentTarget.blur()}
-							className={
-								style.rangeVolume + (isMobile ? ` ${style.hideOnMobile}` : '')
-							}
-							style={{
-								backgroundImage: `linear-gradient(to right, #00b2ff ${!isMuted ? volume * 100 : 0}%, #fff5 ${!isMuted ? volume * 100 : 0}%)`
-							}}
-							onChange={(event) =>
-								handleInputRange('volume', +event.currentTarget.value)
-							}
-						/>
-					</div>
-					<div>
-						<button
-							type='button'
-							onClick={togglePictureInPicture}
-							onFocus={(e) => e.currentTarget.blur()}>
-							<Icon name='pip' />
+							onClick={() => {
+								setIsPlayFirst(true)
+								playVideo()
+							}}>
+							<Icon name='play' bigger />
 						</button>
 					</div>
-					<div>
-						<button
-							type='button'
-							onClick={toggleFullScreen}
-							onFocus={(e) => e.currentTarget.blur()}>
-							<Icon name={isFullscreen ? 'unfullscreen' : 'fullscreen'} />
-						</button>
-					</div>
-				</div>
-				<Icon
-					name={isLoading ? 'hide' : isEnded ? 'restart' : isPaused ? 'play' : 'pause'}
-					bigger
-					className={style.absoluteCenter}
-					onClick={togglePlay}
-				/>
+				)}
 			</div>
-			{seekStack < 0 && (
-				<div inert key={seekStack} className={style.seekLeft}>
-					{seekStack.toString()}
-				</div>
-			)}
-			{seekStack > 0 && (
-				<div
-					inert
-					key={seekStack}
-					className={style.seekRight}>{`+${seekStack.toString()}`}</div>
-			)}
-			{isLoading && (
-				<div className={style.loadingContainer}>
-					<Icon name='loading' />
-				</div>
-			)}
-			{!isPlayFirst && (
-				<div className={style.playFirstContainer}>
-					<button
-						type='button'
-						onFocus={(e) => e.currentTarget.blur()}
-						onClick={() => {
-							setIsPlayFirst(true)
-							playVideo()
-						}}>
-						<Icon name='play' bigger />
-					</button>
-				</div>
-			)}
 		</div>
 	)
 }
