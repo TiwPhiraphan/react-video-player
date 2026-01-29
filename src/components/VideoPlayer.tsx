@@ -526,7 +526,9 @@ export default function VideoPlayer({ source, title }: VideoPlayerProps) {
 					onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
 					onVolumeChange={(event) => setVolume(event.currentTarget.volume)}
 					onCanPlayThrough={() => setIsLoading(false)}
+					onCanPlay={() => setIsLoading(false)}
 					onWaiting={() => setIsLoading(true)}
+					onPlaying={() => setIsLoading(false)}
 					onLoadStart={() => setIsEnded(false)}
 					onEnded={() => setIsEnded(true)}
 					onPlay={() => {
