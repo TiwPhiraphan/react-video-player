@@ -21,6 +21,7 @@ interface VideoPlayerProps {
 type PlaybackState = {
 	isPlaying: boolean
 	isEnded: boolean
+	isError: boolean
 	isLoading: boolean
 	isMuted: boolean
 	hasStartedPlaying: boolean
@@ -46,6 +47,7 @@ type VideoAction =
 	| { type: 'PLAY' }
 	| { type: 'PAUSE' }
 	| { type: 'END' }
+	| { type: 'ERROR'; isLoading: boolean }
 	| { type: 'LOADING'; isLoading: boolean }
 	| { type: 'MUTE'; isMuted: boolean }
 	| { type: 'SET_TIME'; time: number }
@@ -262,6 +264,8 @@ function playbackReducer(state: PlaybackState, action: VideoAction): PlaybackSta
 			return { ...state, isPlaying: false }
 		case 'END':
 			return { ...state, isEnded: true, isPlaying: false }
+		case 'ERROR':
+			return { ...state, isError: true, isLoading: false, isEnded: true, hasStartedPlaying: false }
 		case 'LOADING':
 			return { ...state, isLoading: action.isLoading }
 		case 'MUTE':
@@ -279,6 +283,7 @@ function playbackReducer(state: PlaybackState, action: VideoAction): PlaybackSta
 				isPlaying: false,
 				isEnded: false,
 				isLoading: false,
+				isError: false,
 				isMuted: state.isMuted,
 				hasStartedPlaying: false,
 				currentTime: 0,
@@ -356,6 +361,7 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 		isPlaying: false,
 		isEnded: false,
 		isLoading: false,
+		isError: false,
 		isMuted: false,
 		hasStartedPlaying: false,
 		currentTime: 0,
@@ -639,7 +645,7 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 			hlsInstanceRef.current = hlsInstance
 			hlsInstance.loadSource(videoUrl)
 			hlsInstance.attachMedia(videoRef.current)
-
+			hlsInstance.on(Hls.Events.ERROR, () => dispatchPlayback({ type: 'ERROR', isLoading: false }))
 			// Stop loading when video ends (for live streams without EXT-X-ENDLIST)
 			const handleVideoEnded = () => {
 				if (hlsInstance) {
@@ -797,6 +803,7 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 					onWaiting={() => dispatchPlayback({ type: 'LOADING', isLoading: true })}
 					onPlaying={() => dispatchPlayback({ type: 'LOADING', isLoading: false })}
 					onLoadStart={() => dispatchPlayback({ type: 'RESET' })}
+					onError={() => dispatchPlayback({ type: 'ERROR', isLoading: false })}
 					onEnded={() => dispatchPlayback({ type: 'END' })}
 					onPlay={() => dispatchPlayback({ type: 'PLAY' })}
 					onPause={() => dispatchPlayback({ type: 'PAUSE' })}>
@@ -992,18 +999,24 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 				)}
 
 				{/* Initial play button */}
-				{!playbackState.hasStartedPlaying && (
+				{(!playbackState.hasStartedPlaying) && (
 					<div className={style.playFirstContainer}>
 						<button
 							type='button'
 							aria-label='Play video'
 							className={style.btnCenterPlay}
+							style={{ cursor: playbackState.isError ? 'default' : 'pointer' }}
 							onFocus={(e) => e.currentTarget.blur()}
 							onClick={() => {
-								dispatchPlayback({ type: 'PLAY' })
-								play()
+								if (!playbackState.isError) {
+									dispatchPlayback({ type: 'PLAY' })
+									play()
+								}
 							}}>
-							<Icon name='play' bigger />
+							<Icon name={playbackState.isError ? 'error' : 'play'} bigger size={6} />
+							{playbackState.isError && (
+								<p className={style.errorMessage}>Can't play this video</p>
+							)}
 						</button>
 					</div>
 				)}

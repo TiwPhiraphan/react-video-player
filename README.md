@@ -63,6 +63,7 @@ export default function App() {
 
 | Prop | Type | Required | Description |
 |--------|------|----------|--------------|
+| `hls` | `boolean \| Partial<HlsConfig>` | ❌ | Using hls.js |
 | `title` | `string` | ❌ | Video title overlay |
 | `source` | `string \| { link: string; type?: 'video/mp4' \| 'video/ogg' \| 'video/webm' }` | ✅ | Video source |
 
