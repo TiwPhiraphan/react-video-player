@@ -134,7 +134,7 @@ export default function Icon({ name, bigger, className, onClick }: IconProps) {
 			onClick={onClick}
 			className={className}
 			style={{ display: 'block', width: `${bigger ? '5' : '1.6'}em` }}
-			stroke='currentColor'>
+			stroke='white'>
 			<title>{name}</title>
 			{name === 'play' && (
 				<path

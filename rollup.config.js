@@ -4,6 +4,7 @@ import typescript from '@rollup/plugin-typescript'
 import postcss from 'rollup-plugin-postcss'
 import peerDepsExternal from 'rollup-plugin-peer-deps-external'
 import terser from '@rollup/plugin-terser'
+import autoprefixer from 'autoprefixer'
 
 const dts = require('rollup-plugin-dts').default
 const packageJson = require('./package.json')
@@ -29,6 +30,7 @@ export default [
       resolve(),
       commonjs(),
       postcss({
+        plugins: [autoprefixer()],
         modules: true,
         extract: 'index.css',
         minimize: true,

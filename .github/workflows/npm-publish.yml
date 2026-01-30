@@ -21,7 +21,7 @@ jobs:
       - name: Install Deps
         run: npm install
       - name: Build component
-        run: npm run rollup
+        run: npm run export
       - name: Publish package
         run: npm publish --provenance --access=public
         env:

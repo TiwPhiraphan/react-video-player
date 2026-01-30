@@ -1,683 +1,1007 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import Icon from './Icon'
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
+import Hls, { type HlsConfig } from 'hls.js'
 import style from './VideoPlayer.module.css'
+import Icon from './Icon'
 
+// Constants
+const SEEK_SECONDS = 10
+const DOUBLE_TAP_THRESHOLD_MS = 300
+const CONTROL_HIDE_DELAY_MS = 2500
+const CONTROL_HIDE_DELAY_WHILE_RANGING_MS = 1000
+const MOUSE_MOVE_THROTTLE_MS = 200
+const SEEK_MODE_TIMEOUT_MS = 1500
+
+// Types
 interface VideoPlayerProps {
 	title?: string
+	hls?: boolean | Partial<HlsConfig>
 	source: string | { link: string; type?: 'video/mp4' | 'video/ogg' | 'video/webm' }
 }
 
-function throttle<T extends (...args: unknown[]) => void>(
+type PlaybackState = {
+	isPlaying: boolean
+	isEnded: boolean
+	isLoading: boolean
+	isMuted: boolean
+	hasStartedPlaying: boolean
+	currentTime: number
+	duration: number
+	volume: number
+	playbackSpeed: number
+}
+
+type UIState = {
+	isControlVisible: boolean
+	isFullscreen: boolean
+	isRanging: boolean
+	isSettingsOpen: boolean
+	activeSettingPanel: 'speed' | null
+	seekStack: number
+	isSeekMode: boolean
+	hoverTime: number | null
+	hoverX: number
+}
+
+type VideoAction =
+	| { type: 'PLAY' }
+	| { type: 'PAUSE' }
+	| { type: 'END' }
+	| { type: 'LOADING'; isLoading: boolean }
+	| { type: 'MUTE'; isMuted: boolean }
+	| { type: 'SET_TIME'; time: number }
+	| { type: 'SET_DURATION'; duration: number }
+	| { type: 'SET_VOLUME'; volume: number }
+	| { type: 'SET_SPEED'; speed: number }
+	| { type: 'RESET' }
+
+type UIAction =
+	| { type: 'SHOW_CONTROLS' }
+	| { type: 'HIDE_CONTROLS' }
+	| { type: 'SET_FULLSCREEN'; isFullscreen: boolean }
+	| { type: 'SET_RANGING'; isRanging: boolean }
+	| { type: 'TOGGLE_SETTINGS' }
+	| { type: 'CLOSE_SETTINGS' }
+	| { type: 'SET_SETTING_PANEL'; panel: 'speed' | null }
+	| { type: 'ADD_SEEK'; amount: number }
+	| { type: 'RESET_SEEK' }
+	| { type: 'SET_SEEK_MODE'; isActive: boolean }
+	| { type: 'SET_HOVER'; time: number | null; x: number }
+
+// Utility Functions
+function formatTime(seconds?: number): string {
+	if (seconds === undefined || Number.isNaN(seconds) || seconds < 0) return '00:00'
+	const totalSeconds = Math.floor(seconds)
+	const minutes = Math.floor(totalSeconds / 60)
+	const secs = totalSeconds % 60
+	return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+}
+
+function isMobileDevice(): boolean {
+	return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobi/i.test(
+		navigator.userAgent
+	)
+}
+
+function createThrottle<T extends (...args: unknown[]) => void>(
 	func: T,
-	delay: number
+	delayMs: number
 ): (...args: Parameters<T>) => void {
 	let timeoutId: NodeJS.Timeout | null = null
-	let lastRan = 0
+	let lastExecutionTime = 0
 
 	return function (this: unknown, ...args: Parameters<T>) {
 		const now = Date.now()
 
-		if (!lastRan) {
+		if (!lastExecutionTime) {
 			func.apply(this, args)
-			lastRan = now
+			lastExecutionTime = now
 		} else {
 			if (timeoutId) clearTimeout(timeoutId)
 
 			timeoutId = setTimeout(
 				() => {
-					if (now - lastRan >= delay) {
+					if (now - lastExecutionTime >= delayMs) {
 						func.apply(this, args)
-						lastRan = now
+						lastExecutionTime = now
 					}
 				},
-				delay - (now - lastRan)
+				delayMs - (now - lastExecutionTime)
 			)
 		}
 	}
 }
 
-export default function VideoPlayer({ source, title }: VideoPlayerProps) {
-	const videoLink = typeof source === 'string' ? source : source.link
-	const videoType =
+// Fullscreen API helpers
+async function requestFullscreen(element: HTMLDivElement): Promise<boolean> {
+	interface FullscreenElement {
+		requestFullscreen?: () => Promise<void>
+		webkitRequestFullscreen?: () => Promise<void>
+		webkitEnterFullscreen?: () => Promise<void>
+		mozRequestFullScreen?: () => Promise<void>
+		msRequestFullscreen?: () => Promise<void>
+	}
+	const el = element as FullscreenElement
+	const requestMethod =
+		el.requestFullscreen ||
+		el.webkitRequestFullscreen ||
+		el.webkitEnterFullscreen ||
+		el.mozRequestFullScreen ||
+		el.msRequestFullscreen
+
+	if (requestMethod) {
+		try {
+			await requestMethod.call(el)
+			return true
+		} catch (error) {
+			console.error('Failed to enter fullscreen:', error)
+			return false
+		}
+	}
+	return false
+}
+
+async function exitFullscreen(): Promise<boolean> {
+	interface ExitFullscreenElement {
+		exitFullscreen?: () => Promise<void>
+		webkitExitFullscreen?: () => Promise<void>
+		mozCancelFullScreen?: () => Promise<void>
+		msExitFullscreen?: () => Promise<void>
+	}
+	const doc = document as ExitFullscreenElement
+	const exitMethod =
+		doc.exitFullscreen ||
+		doc.webkitExitFullscreen ||
+		doc.mozCancelFullScreen ||
+		doc.msExitFullscreen
+
+	if (exitMethod) {
+		try {
+			await exitMethod.call(doc)
+			return true
+		} catch (error) {
+			console.error('Failed to exit fullscreen:', error)
+			return false
+		}
+	}
+	return false
+}
+
+function isFullscreenSupported(): boolean {
+	interface FullScreenSupport {
+		fullscreenEnabled?: boolean
+		webkitFullscreenEnabled?: boolean
+		mozFullScreenEnabled?: boolean
+		msFullscreenEnabled?: boolean
+	}
+	const doc = document as FullScreenSupport
+	return !!(
+		doc.fullscreenEnabled ||
+		doc.webkitFullscreenEnabled ||
+		doc.mozFullScreenEnabled ||
+		doc.msFullscreenEnabled
+	)
+}
+
+// Picture-in-Picture API helpers
+async function requestPictureInPicture(
+	video: HTMLVideoElement
+): Promise<PictureInPictureWindow | null> {
+	if (
+		!('pictureInPictureEnabled' in document) ||
+		typeof video.requestPictureInPicture !== 'function'
+	) {
+		console.error('Picture-in-Picture is not supported')
+		return null
+	}
+
+	try {
+		if (video.paused) {
+			await video.play().catch(() => {
+				console.warn('Auto-play was prevented')
+			})
+		}
+		return await video.requestPictureInPicture()
+	} catch (error) {
+		console.error('Failed to enter Picture-in-Picture:', error)
+		return null
+	}
+}
+
+async function exitPictureInPicture(video: HTMLVideoElement): Promise<boolean> {
+	if (
+		video.disablePictureInPicture === false &&
+		'pictureInPictureElement' in document &&
+		document.pictureInPictureElement
+	) {
+		try {
+			await document.exitPictureInPicture()
+			return true
+		} catch (error) {
+			console.error('Failed to exit Picture-in-Picture:', error)
+			return false
+		}
+	}
+	return false
+}
+
+function isPictureInPictureSupported(): boolean {
+	return (
+		'pictureInPictureEnabled' in document &&
+		'requestPictureInPicture' in HTMLVideoElement.prototype
+	)
+}
+
+// Screen Orientation API helper
+async function lockOrientation(video: HTMLVideoElement, isFullscreen: boolean): Promise<void> {
+	const isLandscape = video.videoWidth > video.videoHeight
+	
+	if (
+		typeof window !== 'undefined' &&
+		window.screen &&
+		'orientation' in window.screen &&
+		window.screen.orientation &&
+		'lock' in window.screen.orientation &&
+		typeof window.screen.orientation.lock === 'function' &&
+		isLandscape &&
+		isFullscreen
+	) {
+		try {
+			await window.screen.orientation.lock('landscape')
+		} catch (error) {
+			console.warn('Failed to lock orientation:', error)
+		}
+	}
+}
+
+// Reducers
+function playbackReducer(state: PlaybackState, action: VideoAction): PlaybackState {
+	switch (action.type) {
+		case 'PLAY':
+			return { ...state, isPlaying: true, isEnded: false, hasStartedPlaying: true }
+		case 'PAUSE':
+			return { ...state, isPlaying: false }
+		case 'END':
+			return { ...state, isEnded: true, isPlaying: false }
+		case 'LOADING':
+			return { ...state, isLoading: action.isLoading }
+		case 'MUTE':
+			return { ...state, isMuted: action.isMuted }
+		case 'SET_TIME':
+			return { ...state, currentTime: action.time }
+		case 'SET_DURATION':
+			return { ...state, duration: action.duration }
+		case 'SET_VOLUME':
+			return { ...state, volume: action.volume }
+		case 'SET_SPEED':
+			return { ...state, playbackSpeed: action.speed }
+		case 'RESET':
+			return {
+				isPlaying: false,
+				isEnded: false,
+				isLoading: false,
+				isMuted: state.isMuted,
+				hasStartedPlaying: false,
+				currentTime: 0,
+				duration: 0,
+				volume: state.volume,
+				playbackSpeed: state.playbackSpeed
+			}
+		default:
+			return state
+	}
+}
+
+function uiReducer(state: UIState, action: UIAction): UIState {
+	switch (action.type) {
+		case 'SHOW_CONTROLS':
+			return { ...state, isControlVisible: true }
+		case 'HIDE_CONTROLS':
+			return { ...state, isControlVisible: false }
+		case 'SET_FULLSCREEN':
+			return { ...state, isFullscreen: action.isFullscreen }
+		case 'SET_RANGING':
+			return { ...state, isRanging: action.isRanging }
+		case 'TOGGLE_SETTINGS':
+			return {
+				...state,
+				isSettingsOpen: !state.isSettingsOpen,
+				isRanging: !state.isRanging,
+				activeSettingPanel: state.isSettingsOpen ? null : state.activeSettingPanel
+			}
+		case 'CLOSE_SETTINGS':
+			return { ...state, isSettingsOpen: false, activeSettingPanel: null }
+		case 'SET_SETTING_PANEL':
+			return { ...state, activeSettingPanel: action.panel }
+		case 'ADD_SEEK':
+			return {
+				...state,
+				seekStack:
+					action.amount > 0
+						? state.seekStack < 0
+							? action.amount
+							: state.seekStack + action.amount
+						: state.seekStack > 0
+							? action.amount
+							: state.seekStack + action.amount
+			}
+		case 'RESET_SEEK':
+			return { ...state, seekStack: 0 }
+		case 'SET_SEEK_MODE':
+			return { ...state, isSeekMode: action.isActive }
+		case 'SET_HOVER':
+			return { ...state, hoverTime: action.time, hoverX: action.x }
+		default:
+			return state
+	}
+}
+
+export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
+	// Parse source
+	const videoUrl = typeof source === 'string' ? source : source.link
+	const videoMimeType =
 		typeof source === 'object' && typeof source.type === 'string' ? source.type : 'video/mp4'
 
-	const timing = useRef<NodeJS.Timeout | null>(null)
-	const seeking = useRef<NodeJS.Timeout | null>(null)
+	// Refs
 	const videoRef = useRef<HTMLVideoElement>(null)
-	const wrapperRef = useRef<HTMLDivElement>(null)
-	const lastSeekTap = useRef(0)
+	const containerRef = useRef<HTMLDivElement>(null)
+	const controlHideTimerRef = useRef<NodeJS.Timeout | null>(null)
+	const seekModeTimerRef = useRef<NodeJS.Timeout | null>(null)
+	const animationFrameRef = useRef<number | null>(null)
+	const lastDoubleTapTimeRef = useRef(0)
+	const hlsInstanceRef = useRef<Hls | null>(null)
+	const isMobile = useRef(isMobileDevice())
 
-	const rafRef = useRef<number | null>(null)
+	// State
+	const [playbackState, dispatchPlayback] = useReducer(playbackReducer, {
+		isPlaying: false,
+		isEnded: false,
+		isLoading: false,
+		isMuted: false,
+		hasStartedPlaying: false,
+		currentTime: 0,
+		duration: 0,
+		volume: 1,
+		playbackSpeed: 1
+	})
 
-	const [isMobile, setIsMobile] = useState(true)
-	const [seekStack, setSeekStack] = useState(0)
-	const [seekMode, setSeekMode] = useState(false)
-	const [isControlShown, setIsControlShown] = useState(false)
-	const [isFullscreen, setIsFullscreen] = useState(false)
-	const [isPlayFirst, setIsPlayFirst] = useState(false)
-	const [isLoading, setIsLoading] = useState(false)
-	const [isMuted, setIsMuted] = useState(false)
-	const [isEnded, setIsEnded] = useState(false)
-	const [isPaused, setIsPaused] = useState(true)
-	const [isRanging, setIsRanging] = useState(false)
-	const [volume, setVolume] = useState(1)
-	const [duration, setDuration] = useState(0)
-	const [currentTime, setCurrentTime] = useState(0)
-	const [speed, setSpeed] = useState(1)
-	const [isSetting, setIsSetting] = useState(false)
-	const [openAreaSetting, setOpenAreaSetting] = useState<'speed' | null>(null)
-	const [hoverTime, setHoverTime] = useState<number | null>(null)
-	const [hoverX, setHoverX] = useState(0)
+	const [uiState, dispatchUI] = useReducer(uiReducer, {
+		isControlVisible: false,
+		isFullscreen: false,
+		isRanging: false,
+		isSettingsOpen: false,
+		activeSettingPanel: null,
+		seekStack: 0,
+		isSeekMode: false,
+		hoverTime: null,
+		hoverX: 0
+	})
 
-	useEffect(() => {
-		setIsPlayFirst(false)
-		setIsEnded(false)
-		setIsLoading(false)
-		setDuration(0)
-		setCurrentTime(0)
-		setSeekStack(0)
-		setSeekMode(false)
-		setIsRanging(false)
-		setIsSetting(false)
-		setOpenAreaSetting(null)
-	}, [videoLink])
-
-	useEffect(() => {
-		return () => {
-			if (timing.current) {
-				clearTimeout(timing.current)
-				timing.current = null
+	// Helper to safely execute video operations
+	const executeVideoOperation = useCallback(
+		async <T,>(operation: (video: HTMLVideoElement) => Promise<T> | T): Promise<T | null> => {
+			if (videoRef.current) {
+				try {
+					return await operation(videoRef.current)
+				} catch (error) {
+					console.error('Video operation failed:', error)
+					return null
+				}
 			}
-			if (seeking.current) {
-				clearTimeout(seeking.current)
-				seeking.current = null
-			}
-			if (rafRef.current) {
-				cancelAnimationFrame(rafRef.current)
-				rafRef.current = null
-			}
-		}
-	}, [])
-
-	function formatTime(sec?: number) {
-		if (sec === undefined || Number.isNaN(sec) || sec < 0) return '00:00'
-		const total = Math.floor(sec)
-		const minutes = Math.floor(total / 60)
-		const secs = total % 60
-		return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-	}
-
-	async function setCallback<E extends unknown>(
-		ref: React.RefObject<E | null>,
-		callback: (ref: E) => Promise<void> | void
-	) {
-		if (ref.current) {
-			await callback(ref.current)
-		}
-	}
-
-	const handleSeekChange = useCallback(() => {
-		if (seeking.current) {
-			clearTimeout(seeking.current)
-			seeking.current = null
-		}
-		setSeekMode(true)
-		seeking.current = setTimeout(() => {
-			setSeekMode(false)
-			setSeekStack(0)
-			seeking.current = null
-		}, 1500)
-	}, [])
-
-	const togglePlay = useCallback(() => {
-		setCallback(videoRef, async (video) => {
-			try {
-				video.paused ? await video.play() : video.pause()
-			} catch {
-				return void 0
-			}
-		})
-	}, [])
-
-	const seekAction = useCallback(
-		(active: '-' | '+') => {
-			setCallback(videoRef, (video) => {
-				setSeekStack((prev) => {
-					const newValue =
-						active === '+' ? (prev < 0 ? 10 : prev + 10) : prev > 0 ? -10 : prev - 10
-					video.currentTime += active === '+' ? 10 : -10
-					return newValue
-				})
-				handleSeekChange()
-			})
+			return null
 		},
-		[handleSeekChange]
+		[]
 	)
 
-	useEffect(() => {
-		const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobi/i.test(
-			window.navigator.userAgent
-		)
-		setIsMobile(mobile)
-
-		async function handleFullScreenChange() {
-			if (wrapperRef.current && videoRef.current) {
-				const fullscreen = document.fullscreenElement === wrapperRef.current
-				setIsFullscreen(document.fullscreenEnabled && fullscreen)
-				const isLandscape = videoRef.current.videoWidth > videoRef.current.videoHeight
-				if (
-					typeof window !== 'undefined' &&
-					window.screen &&
-					'orientation' in window.screen &&
-					window.screen.orientation &&
-					'lock' in window.screen.orientation &&
-					typeof window.screen.orientation.lock === 'function' &&
-					isLandscape &&
-					fullscreen
-				) {
-					try {
-						;(await window.screen.orientation.lock('landscape')) as Promise<void>
-					} catch {
-						return false
-					}
-				}
-			}
-		}
-		document.addEventListener('fullscreenchange', handleFullScreenChange)
-
-		function handleShortKey(event: KeyboardEvent) {
-			if ([' ', 'f', 'p', 'ArrowLeft', 'ArrowRight'].includes(event.key))
-				event.preventDefault()
-			setCallback(videoRef, (video) => {
-				switch (event.key) {
-					case ' ':
-						togglePlay()
-						break
-					case 'f':
-						toggleFullScreen()
-						break
-					case 'p':
-						togglePictureInPicture()
-						break
-					case 'ArrowLeft':
-						setSeekStack((prev) => {
-							const newValue = prev > 0 ? -10 : prev - 10
-							video.currentTime -= 10
-							return newValue
-						})
-						handleSeekChange()
-						break
-					case 'ArrowRight':
-						setSeekStack((prev) => {
-							const newValue = prev < 0 ? 10 : prev + 10
-							video.currentTime += 10
-							return newValue
-						})
-						handleSeekChange()
-						break
-				}
-			})
-		}
-		!mobile && window.addEventListener('keydown', handleShortKey)
-
-		return () => {
-			document.removeEventListener('fullscreenchange', handleFullScreenChange)
-			!mobile && window.removeEventListener('keydown', handleShortKey)
-		}
-	}, [videoLink, togglePlay, handleSeekChange])
-
-	function playVideo() {
-		setCallback(videoRef, async (video) => {
-			try {
+	// Playback controls
+	const togglePlayPause = useCallback(() => {
+		executeVideoOperation(async (video) => {
+			if (video.paused) {
 				await video.play()
-			} catch {
-				return void 0
-			}
-		})
-	}
-
-	function toggleMute() {
-		setCallback(videoRef, (video) => {
-			video.muted = !video.muted
-			setIsMuted(video.muted)
-		})
-	}
-
-	async function requestFullScreen(element: HTMLDivElement) {
-		interface FullscreenElement {
-			requestFullscreen?: () => Promise<void>
-			webkitRequestFullscreen?: () => Promise<void>
-			webkitEnterFullscreen?: () => Promise<void>
-			mozRequestFullScreen?: () => Promise<void>
-			msRequestFullscreen?: () => Promise<void>
-		}
-		const el = element as FullscreenElement
-		const requestMethod =
-			el.requestFullscreen ||
-			el.webkitRequestFullscreen ||
-			el.webkitEnterFullscreen ||
-			el.mozRequestFullScreen ||
-			el.msRequestFullscreen
-		if (requestMethod) {
-			try {
-				await requestMethod.call(el)
-			} catch {
-				console.error('Failed to enter fullscreen')
-				return
-			}
-		}
-	}
-
-	async function exitFullScreen() {
-		interface ExitFullscreenElement {
-			exitFullscreen?: () => Promise<void>
-			webkitExitFullscreen?: () => Promise<void>
-			mozCancelFullScreen?: () => Promise<void>
-			msExitFullscreen?: () => Promise<void>
-		}
-		const el = document as ExitFullscreenElement
-		const exitMethod =
-			el.exitFullscreen ||
-			el.webkitExitFullscreen ||
-			el.mozCancelFullScreen ||
-			el.msExitFullscreen
-		if (exitMethod) {
-			try {
-				await exitMethod.call(el)
-			} catch {
-				console.error('Failed to exit fullscreen')
-				return
-			}
-		}
-	}
-
-	function toggleFullScreen() {
-		interface FullScreenSupport {
-			fullscreenEnabled?: boolean
-			webkitFullscreenEnabled?: boolean
-			mozFullScreenEnabled?: boolean
-			msFullscreenEnabled?: boolean
-		}
-		const doc = document as FullScreenSupport
-		const isFullScreenSupport = !!(
-			doc.fullscreenEnabled ||
-			doc.webkitFullscreenEnabled ||
-			doc.mozFullScreenEnabled ||
-			doc.msFullscreenEnabled
-		)
-		if (isFullScreenSupport) {
-			setCallback(wrapperRef, (wrapper) => {
-				if (document.fullscreenElement) {
-					exitFullScreen()
-				} else {
-					requestFullScreen(wrapper)
-				}
-			})
-		}
-	}
-
-	async function requestPictureInPicture(
-		videoElement: HTMLVideoElement
-	): Promise<PictureInPictureWindow | null> {
-		if (
-			!('pictureInPictureEnabled' in document) ||
-			typeof videoElement.requestPictureInPicture !== 'function'
-		) {
-			console.error('Picture-in-Picture is not supported in this browser')
-			return null
-		}
-		try {
-			if (videoElement.paused) {
-				await videoElement.play().catch(() => {
-					console.warn('Auto-play was prevented')
-				})
-			}
-			return await videoElement.requestPictureInPicture()
-		} catch {
-			console.error('Failed to enter Picture-in-Picture')
-			return null
-		}
-	}
-
-	async function exitPictureInPicture(videoElement: HTMLVideoElement): Promise<void> {
-		if (
-			videoElement.disablePictureInPicture === false &&
-			'pictureInPictureElement' in document &&
-			document.pictureInPictureElement
-		) {
-			try {
-				await document.exitPictureInPicture()
-			} catch {
-				console.error('Failed to exit Picture-in-Picture')
-				return
-			}
-		}
-	}
-
-	function togglePictureInPicture() {
-		const isSupported =
-			'pictureInPictureEnabled' in document &&
-			'requestPictureInPicture' in HTMLVideoElement.prototype
-		if (isSupported) {
-			setCallback(videoRef, (video) => {
-				if (document.pictureInPictureElement) {
-					exitPictureInPicture(video)
-				} else {
-					requestPictureInPicture(video)
-				}
-			})
-		}
-	}
-
-	function handleInputRange(action: 'volume' | 'time', value: number) {
-		setCallback(videoRef, (video) => {
-			if (action === 'time') {
-				setCurrentTime(value)
-				video.currentTime = value
 			} else {
-				setVolume(value)
-				video.volume = value
+				video.pause()
+			}
+		})
+	}, [executeVideoOperation])
+
+	const play = useCallback(() => {
+		executeVideoOperation(async (video) => {
+			await video.play()
+		})
+	}, [executeVideoOperation])
+
+	const toggleMute = useCallback(() => {
+		executeVideoOperation((video) => {
+			video.muted = !video.muted
+			dispatchPlayback({ type: 'MUTE', isMuted: video.muted })
+		})
+	}, [executeVideoOperation])
+
+	const setVolume = useCallback(
+		(newVolume: number) => {
+			executeVideoOperation((video) => {
+				video.volume = newVolume
+				dispatchPlayback({ type: 'SET_VOLUME', volume: newVolume })
 				if (video.muted) {
 					video.muted = false
-					setIsMuted(false)
+					dispatchPlayback({ type: 'MUTE', isMuted: false })
 				}
-			}
-		})
-	}
-
-	function handleControlShown(timeout = 2500) {
-		if (isPaused) return
-		if (timing.current) {
-			clearTimeout(timing.current)
-			timing.current = null
-		}
-		setIsControlShown(true)
-		timing.current = setTimeout(() => {
-			if (!isRanging) {
-				setIsControlShown(false)
-			}
-			timing.current = null
-		}, timeout)
-	}
-
-	const handleMouseMove = useCallback(
-		throttle(() => {
-			if (!isPaused) {
-				handleControlShown()
-			}
-		}, 200),
-		[isPaused, isRanging]
+			})
+		},
+		[executeVideoOperation]
 	)
 
-	const handleMouseLeave = useCallback(() => {
-		setIsControlShown(false)
-		if (timing.current) {
-			clearTimeout(timing.current)
-			timing.current = null
+	const setCurrentTime = useCallback(
+		(time: number) => {
+			executeVideoOperation((video) => {
+				video.currentTime = time
+				dispatchPlayback({ type: 'SET_TIME', time })
+			})
+		},
+		[executeVideoOperation]
+	)
+
+	const setPlaybackSpeed = useCallback(
+		(speed: number) => {
+			executeVideoOperation((video) => {
+				video.playbackRate = speed
+				dispatchPlayback({ type: 'SET_SPEED', speed })
+			})
+			dispatchUI({ type: 'CLOSE_SETTINGS' })
+		},
+		[executeVideoOperation]
+	)
+
+	// Seek functionality
+	const handleSeekModeChange = useCallback(() => {
+		if (seekModeTimerRef.current) {
+			clearTimeout(seekModeTimerRef.current)
+		}
+
+		dispatchUI({ type: 'SET_SEEK_MODE', isActive: true })
+
+		seekModeTimerRef.current = setTimeout(() => {
+			dispatchUI({ type: 'SET_SEEK_MODE', isActive: false })
+			dispatchUI({ type: 'RESET_SEEK' })
+			seekModeTimerRef.current = null
+		}, SEEK_MODE_TIMEOUT_MS)
+	}, [])
+
+	const seekVideo = useCallback(
+		(direction: '-' | '+') => {
+			executeVideoOperation((video) => {
+				const seekAmount = direction === '+' ? SEEK_SECONDS : -SEEK_SECONDS
+				video.currentTime += seekAmount
+				dispatchUI({ type: 'ADD_SEEK', amount: seekAmount })
+				handleSeekModeChange()
+			})
+		},
+		[executeVideoOperation, handleSeekModeChange]
+	)
+
+	const handleDoubleTapSeek = useCallback(
+		(direction: '-' | '+') => {
+			if (!isMobile.current) return
+
+			const now = Date.now()
+			const timeSinceLastTap = now - lastDoubleTapTimeRef.current
+			const isDoubleTap = timeSinceLastTap > 0 && timeSinceLastTap < DOUBLE_TAP_THRESHOLD_MS
+			const shouldSeek = isDoubleTap || uiState.isSeekMode
+
+			if (shouldSeek) {
+				if (!uiState.isSeekMode) {
+					dispatchUI({ type: 'SET_SEEK_MODE', isActive: true })
+				}
+				seekVideo(direction)
+			}
+
+			lastDoubleTapTimeRef.current = now
+		},
+		[uiState.isSeekMode, seekVideo]
+	)
+
+	// Fullscreen controls
+	const toggleFullscreen = useCallback(() => {
+		if (!isFullscreenSupported() || !containerRef.current) return
+
+		if (document.fullscreenElement) {
+			exitFullscreen()
+		} else {
+			requestFullscreen(containerRef.current)
 		}
 	}, [])
 
-	useEffect(() => {
-		if (isRanging) {
-			handleControlShown(1000)
-		}
-	}, [isRanging])
+	// Picture-in-Picture controls
+	const togglePictureInPicture = useCallback(() => {
+		if (!isPictureInPictureSupported() || !videoRef.current) return
 
+		if (document.pictureInPictureElement) {
+			exitPictureInPicture(videoRef.current)
+		} else {
+			requestPictureInPicture(videoRef.current)
+		}
+	}, [])
+
+	// Control visibility management
+	const showControls = useCallback(
+		(hideDelayMs = CONTROL_HIDE_DELAY_MS) => {
+			if (!playbackState.isPlaying) return
+
+			if (controlHideTimerRef.current) {
+				clearTimeout(controlHideTimerRef.current)
+			}
+
+			dispatchUI({ type: 'SHOW_CONTROLS' })
+
+			controlHideTimerRef.current = setTimeout(() => {
+				if (!uiState.isRanging) {
+					dispatchUI({ type: 'HIDE_CONTROLS' })
+				}
+				controlHideTimerRef.current = null
+			}, hideDelayMs)
+		},
+		[playbackState.isPlaying, uiState.isRanging]
+	)
+
+	const hideControls = useCallback(() => {
+		dispatchUI({ type: 'HIDE_CONTROLS' })
+		if (controlHideTimerRef.current) {
+			clearTimeout(controlHideTimerRef.current)
+			controlHideTimerRef.current = null
+		}
+	}, [])
+
+	// Mouse/touch handlers
+	const handleMouseMove = useMemo(
+		() =>
+			createThrottle(() => {
+				if (playbackState.isPlaying) {
+					showControls()
+				}
+			}, MOUSE_MOVE_THROTTLE_MS),
+		[playbackState.isPlaying, showControls]
+	)
+
+	const handleProgressBarHover = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
+		if (animationFrameRef.current) {
+			cancelAnimationFrame(animationFrameRef.current)
+		}
+
+		const target = e.currentTarget
+		animationFrameRef.current = requestAnimationFrame(() => {
+			animationFrameRef.current = null
+			const rect = target.getBoundingClientRect()
+			const x = e.clientX - rect.left
+			const percentage = Math.min(Math.max(x / rect.width, 0), 1)
+			const time = percentage * playbackState.duration
+
+			dispatchUI({ type: 'SET_HOVER', time, x })
+		})
+	}, [playbackState.duration])
+
+	const handleProgressBarLeave = useCallback(() => {
+		dispatchUI({ type: 'SET_HOVER', time: null, x: 0 })
+	}, [])
+
+	// Video event handlers
 	const handleTimeUpdate = useCallback(
 		(event: React.SyntheticEvent<HTMLVideoElement>) => {
 			const newTime = event.currentTarget.currentTime
-			const newTimeFloored = Math.floor(newTime)
-			const currentTimeFloored = Math.floor(currentTime)
-
-			if (newTimeFloored !== currentTimeFloored || Math.abs(newTime - currentTime) > 1) {
-				setCurrentTime(newTime)
+			const timeDifference = Math.abs(newTime - playbackState.currentTime)
+			
+			// Only update if time changed by more than 1 second or crossed a second boundary
+			if (
+				timeDifference > 1 ||
+				Math.floor(newTime) !== Math.floor(playbackState.currentTime)
+			) {
+				dispatchPlayback({ type: 'SET_TIME', time: newTime })
 			}
 		},
-		[currentTime]
+		[playbackState.currentTime]
 	)
 
-	const bufferedProgressPercentage = useMemo(() => {
-		if (!videoRef.current || !duration) return 0
+	// Computed values
+	const bufferedPercentage = useMemo(() => {
+		if (!videoRef.current || !playbackState.duration) return 0
+
 		const buffered = videoRef.current.buffered
 		if (buffered.length === 0) return 0
+
 		let bufferedEnd = 0
 		for (let i = 0; i < buffered.length; i++) {
-			if (buffered.start(i) <= currentTime && buffered.end(i) > currentTime) {
+			if (
+				buffered.start(i) <= playbackState.currentTime &&
+				buffered.end(i) > playbackState.currentTime
+			) {
 				bufferedEnd = buffered.end(i)
 				break
 			}
 		}
-		return (bufferedEnd / duration) * 100
-	}, [currentTime, duration])
+
+		return (bufferedEnd / playbackState.duration) * 100
+	}, [playbackState.currentTime, playbackState.duration])
 
 	const progressPercentage = useMemo(() => {
-		return duration > 0 ? (currentTime / duration) * 100 : 0
-	}, [currentTime, duration])
+		return playbackState.duration > 0
+			? (playbackState.currentTime / playbackState.duration) * 100
+			: 0
+	}, [playbackState.currentTime, playbackState.duration])
 
-	const handleDoubleSeek = useCallback(
-		(active: '-' | '+') => {
-			if (!isMobile) return
+	// Initialize HLS
+	useEffect(() => {
+		dispatchPlayback({ type: 'RESET' })
+		dispatchUI({ type: 'RESET_SEEK' })
+		dispatchUI({ type: 'SET_SEEK_MODE', isActive: false })
+		dispatchUI({ type: 'SET_RANGING', isRanging: false })
+		dispatchUI({ type: 'CLOSE_SETTINGS' })
 
-			const now = Date.now()
-			const diff = now - lastSeekTap.current
+		if (hls && Hls.isSupported() && videoRef.current) {
+			const hlsInstance = new Hls(typeof hls === 'boolean' ? undefined : hls)
+			hlsInstanceRef.current = hlsInstance
+			hlsInstance.loadSource(videoUrl)
+			hlsInstance.attachMedia(videoRef.current)
 
-			const isDoubleTap = diff > 0 && diff < 300
-			const shouldSeek = isDoubleTap || seekMode
-
-			if (shouldSeek) {
-				if (!seekMode) setSeekMode(true)
-				seekAction(active)
+			// Stop loading when video ends (for live streams without EXT-X-ENDLIST)
+			const handleVideoEnded = () => {
+				if (hlsInstance) {
+					hlsInstance.stopLoad()
+				}
 			}
 
-			lastSeekTap.current = now
-		},
-		[isMobile, seekMode, seekAction]
-	)
+			hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+				console.error('HLS Error:', event, data)
+				if (data.fatal) {
+					switch (data.type) {
+						case Hls.ErrorTypes.NETWORK_ERROR:
+							console.error('Fatal network error, trying to recover...')
+							hlsInstance.startLoad()
+							break
+						case Hls.ErrorTypes.MEDIA_ERROR:
+							console.error('Fatal media error, trying to recover...')
+							hlsInstance.recoverMediaError()
+							break
+						default:
+							console.error('Fatal error, cannot recover')
+							hlsInstance.destroy()
+							break
+					}
+				}
+			})
 
-	function handleSpeed(pad: number) {
-		setSpeed(pad)
-		setIsSetting(false)
-		setOpenAreaSetting(null)
-	}
+			if (videoRef.current) {
+				videoRef.current.addEventListener('ended', handleVideoEnded)
+			}
 
-	function toggleSettings() {
-		setIsRanging(!isRanging)
-		setIsSetting(!isSetting)
-		setOpenAreaSetting(null)
-	}
+			return () => {
+				if (videoRef.current) {
+					videoRef.current.removeEventListener('ended', handleVideoEnded)
+				}
+				hlsInstance.destroy()
+				hlsInstanceRef.current = null
+			}
+		}
+	}, [videoUrl, hls])
 
-	const handleRangeHover = (e: React.MouseEvent<HTMLInputElement>) => {
-		if (rafRef.current) return
-		const target = e.currentTarget
-		rafRef.current = requestAnimationFrame(() => {
-			rafRef.current = null
-			const rect = target.getBoundingClientRect()
-			const x = e.clientX - rect.left
-			const percent = Math.min(Math.max(x / rect.width, 0), 1)
-			const time = percent * duration
-			setHoverX(x)
-			setHoverTime(time)
-		})
-	}
-
-	const handleRangeLeave = () => {
-		setHoverTime(null)
-	}
-
+	// Sync playback speed
 	useEffect(() => {
-		setCallback(videoRef, (video) => {
-			video.playbackRate = speed
+		executeVideoOperation((video) => {
+			video.playbackRate = playbackState.playbackSpeed
 		})
-	}, [speed])
+	}, [playbackState.playbackSpeed, executeVideoOperation])
+
+	// Show controls when ranging
+	useEffect(() => {
+		if (uiState.isRanging) {
+			showControls(CONTROL_HIDE_DELAY_WHILE_RANGING_MS)
+		}
+	}, [uiState.isRanging, showControls])
+
+	// Fullscreen change handler
+	useEffect(() => {
+		const handleFullscreenChange = async () => {
+			if (containerRef.current && videoRef.current) {
+				const isCurrentlyFullscreen = document.fullscreenElement === containerRef.current
+				dispatchUI({ type: 'SET_FULLSCREEN', isFullscreen: isCurrentlyFullscreen })
+
+				if (isCurrentlyFullscreen) {
+					await lockOrientation(videoRef.current, true)
+				}
+			}
+		}
+
+		document.addEventListener('fullscreenchange', handleFullscreenChange)
+		return () => {
+			document.removeEventListener('fullscreenchange', handleFullscreenChange)
+		}
+	}, [])
+
+	// Keyboard shortcuts (desktop only)
+	useEffect(() => {
+		if (isMobile.current) return
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if ([' ', 'f', 'p', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
+				event.preventDefault()
+			}
+
+			switch (event.key) {
+				case ' ':
+					togglePlayPause()
+					break
+				case 'f':
+					toggleFullscreen()
+					break
+				case 'p':
+					togglePictureInPicture()
+					break
+				case 'ArrowLeft':
+					seekVideo('-')
+					break
+				case 'ArrowRight':
+					seekVideo('+')
+					break
+			}
+		}
+
+		window.addEventListener('keydown', handleKeyDown)
+		return () => {
+			window.removeEventListener('keydown', handleKeyDown)
+		}
+	}, [togglePlayPause, toggleFullscreen, togglePictureInPicture, seekVideo])
+
+	// Cleanup timers and animation frames
+	useEffect(() => {
+		return () => {
+			if (controlHideTimerRef.current) {
+				clearTimeout(controlHideTimerRef.current)
+			}
+			if (seekModeTimerRef.current) {
+				clearTimeout(seekModeTimerRef.current)
+			}
+			if (animationFrameRef.current) {
+				cancelAnimationFrame(animationFrameRef.current)
+			}
+		}
+	}, [])
+
+	// Determine control visibility class
+	const controlVisibilityClass = isMobile.current
+		? !playbackState.isPlaying || uiState.isControlVisible
+			? style.visit
+			: style.invisit
+		: !playbackState.isPlaying || uiState.isControlVisible
+			? style.opacity1
+			: style.opacity0
 
 	return (
-		<div className={style.videoContainer} key={videoLink}>
+		<div className={style.videoContainer} key={videoUrl}>
 			<div
 				className={style.wrapper}
-				ref={wrapperRef}
+				ref={containerRef}
 				onMouseMove={handleMouseMove}
-				onMouseLeave={handleMouseLeave}>
+				onMouseLeave={hideControls}>
 				<video
-					playsInline
-					preload='none'
 					ref={videoRef}
+					playsInline
+					preload='metadata'
 					controls={false}
+					className={style.video}
 					onTimeUpdate={handleTimeUpdate}
-					onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
-					onVolumeChange={(event) => setVolume(event.currentTarget.volume)}
-					onCanPlayThrough={() => setIsLoading(false)}
-					onCanPlay={() => setIsLoading(false)}
-					onWaiting={() => setIsLoading(true)}
-					onPlaying={() => setIsLoading(false)}
-					onLoadStart={() => setIsEnded(false)}
-					onEnded={() => setIsEnded(true)}
-					onPlay={() => {
-						setIsEnded(false)
-						setIsPaused(false)
-						setIsPlayFirst(true)
-					}}
-					onPause={() => setIsPaused(true)}
-					className={style.video}>
-					<source src={videoLink} type={videoType} />
+					onLoadedMetadata={(e) =>
+						dispatchPlayback({ type: 'SET_DURATION', duration: e.currentTarget.duration })
+					}
+					onVolumeChange={(e) =>
+						dispatchPlayback({ type: 'SET_VOLUME', volume: e.currentTarget.volume })
+					}
+					onCanPlayThrough={() => dispatchPlayback({ type: 'LOADING', isLoading: false })}
+					onCanPlay={() => dispatchPlayback({ type: 'LOADING', isLoading: false })}
+					onWaiting={() => dispatchPlayback({ type: 'LOADING', isLoading: true })}
+					onPlaying={() => dispatchPlayback({ type: 'LOADING', isLoading: false })}
+					onLoadStart={() => dispatchPlayback({ type: 'RESET' })}
+					onEnded={() => dispatchPlayback({ type: 'END' })}
+					onPlay={() => dispatchPlayback({ type: 'PLAY' })}
+					onPause={() => dispatchPlayback({ type: 'PAUSE' })}>
+					<source src={hls ? undefined : videoUrl} type={videoMimeType} />
 				</video>
-				<div
-					className={`${style.controller} ${isMobile ? (isPaused || isControlShown ? style.visit : style.invisit) : isPaused || isControlShown ? style.opacity1 : style.opacity0}`}>
+
+				{/* Controls overlay */}
+				<div className={`${style.controller} ${controlVisibilityClass}`}>
+					{/* Title */}
 					<h1 className={style.title}>
 						<p>{title}</p>
 					</h1>
-					<div className={style.center} onClick={!isMobile ? togglePlay : undefined}>
-						<div onClick={() => handleDoubleSeek('-')} />
-						<div onClick={() => handleDoubleSeek('+')} />
+
+					{/* Center tap areas for mobile seek */}
+					<div
+						className={style.center}
+						onClick={!isMobile.current ? togglePlayPause : undefined}>
+						<div onClick={() => handleDoubleTapSeek('-')} />
+						<div onClick={() => handleDoubleTapSeek('+')} />
 					</div>
+
+					{/* Bottom controls */}
 					<div className={style.controls}>
+						{/* Progress bar */}
 						<div className={style.timeWrapper}>
-							<article>{formatTime(currentTime)}</article>
+							<article>{formatTime(playbackState.currentTime)}</article>
 							<div className={style.timeControl}>
 								<div className={style.backProcess} />
 								<div
 									className={style.progressBar}
-									style={{ width: `${bufferedProgressPercentage}%` }}
+									style={{ width: `${bufferedPercentage}%` }}
 								/>
-								<div className={style.hoverTime} style={{ left: hoverX - 25, display: !hoverTime ? 'none' : undefined }}>
-									{formatTime(hoverTime || 0)}
+								<div
+									className={style.hoverTime}
+									style={{
+										left: uiState.hoverX - 25,
+										display: !uiState.hoverTime ? 'none' : undefined
+									}}>
+									{formatTime(uiState.hoverTime || 0)}
 								</div>
 								<input
 									type='range'
 									step='any'
-									max={duration}
-									value={currentTime}
-									onFocus={(e) => e.currentTarget.blur()}
+									max={playbackState.duration}
+									value={playbackState.currentTime}
 									className={style.rangeTime}
-									onPointerDown={() => setIsRanging(true)}
-									onPointerUp={() => setIsRanging(false)}
-									onPointerCancel={() => setIsRanging(false)}
-									onChange={(event) =>
-										handleInputRange('time', +event.currentTarget.value)
+									aria-label='Video progress'
+									onFocus={(e) => e.currentTarget.blur()}
+									onPointerDown={() => dispatchUI({ type: 'SET_RANGING', isRanging: true })}
+									onPointerUp={() => dispatchUI({ type: 'SET_RANGING', isRanging: false })}
+									onPointerCancel={() =>
+										dispatchUI({ type: 'SET_RANGING', isRanging: false })
 									}
-									onMouseLeave={handleRangeLeave}
-									onMouseMove={handleRangeHover}
+									onChange={(e) => setCurrentTime(+e.currentTarget.value)}
+									onMouseMove={handleProgressBarHover}
+									onMouseLeave={handleProgressBarLeave}
 									style={{
 										backgroundImage: `linear-gradient(to right, #00b2ff ${progressPercentage}%, #0000 ${progressPercentage}%)`
 									}}
 								/>
 							</div>
-							<article>{formatTime(duration)}</article>
+							<article>{formatTime(playbackState.duration)}</article>
 						</div>
+
+						{/* Volume control */}
 						<div className={style.volumeWrapper}>
 							<button
 								type='button'
 								onClick={toggleMute}
+								aria-label={playbackState.isMuted ? 'Unmute' : 'Mute'}
 								onFocus={(e) => e.currentTarget.blur()}>
-								<Icon name={isMuted || volume === 0 ? 'muted' : 'volume'} />
+								<Icon
+									name={
+										playbackState.isMuted || playbackState.volume === 0 ? 'muted' : 'volume'
+									}
+								/>
 							</button>
 							<input
-								max={1}
 								type='range'
+								max={1}
 								step='any'
-								value={isMuted ? 0 : volume}
-								onFocus={(e) => e.currentTarget.blur()}
+								value={playbackState.isMuted ? 0 : playbackState.volume}
 								className={
-									style.rangeVolume + (isMobile ? ` ${style.hideOnMobile}` : '')
+									style.rangeVolume + (isMobile.current ? ` ${style.hideOnMobile}` : '')
 								}
+								aria-label='Volume'
+								onFocus={(e) => e.currentTarget.blur()}
+								onChange={(e) => setVolume(+e.currentTarget.value)}
 								style={{
-									backgroundImage: `linear-gradient(to right, #00b2ff ${!isMuted ? volume * 100 : 0}%, #fff5 ${!isMuted ? volume * 100 : 0}%)`
+									backgroundImage: `linear-gradient(to right, #00b2ff ${!playbackState.isMuted ? playbackState.volume * 100 : 0}%, #fff5 ${!playbackState.isMuted ? playbackState.volume * 100 : 0}%)`
 								}}
-								onChange={(event) =>
-									handleInputRange('volume', +event.currentTarget.value)
-								}
 							/>
 						</div>
+
+						{/* Picture-in-Picture button */}
 						<div>
 							<button
 								type='button'
 								onClick={togglePictureInPicture}
+								aria-label='Picture in Picture'
 								onFocus={(e) => e.currentTarget.blur()}>
 								<Icon name='pip' />
 							</button>
 						</div>
+
+						{/* Fullscreen button */}
 						<div>
 							<button
 								type='button'
-								onClick={toggleFullScreen}
+								onClick={toggleFullscreen}
+								aria-label={uiState.isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
 								onFocus={(e) => e.currentTarget.blur()}>
-								<Icon name={isFullscreen ? 'unfullscreen' : 'fullscreen'} />
+								<Icon name={uiState.isFullscreen ? 'unfullscreen' : 'fullscreen'} />
 							</button>
 						</div>
+
+						{/* Settings button */}
 						<div className={style.btnSetting}>
 							<button
 								type='button'
-								onClick={toggleSettings}
+								onClick={() => dispatchUI({ type: 'TOGGLE_SETTINGS' })}
+								aria-label='Settings'
 								onFocus={(e) => e.currentTarget.blur()}>
 								<Icon name='setting' />
 							</button>
-							<div className={style.customSelect} style={{ display: !isSetting ? 'none' : undefined }}>
-								<div onClick={() => setOpenAreaSetting(openAreaSetting === 'speed' ? null : 'speed')}>ความเร็วในการเล่น</div>
-								{openAreaSetting === 'speed' && (
-									<ul>
-										<li style={{ backgroundColor: speed === 0.25 ? '#eeee' : undefined }} onClick={() => handleSpeed(0.25)}>0.25</li>
-										<li style={{ backgroundColor: speed === 0.5 ? '#eeee' : undefined }} onClick={() => handleSpeed(0.5)}>0.5</li>
-										<li style={{ backgroundColor: speed === 0.75 ? '#eeee' : undefined }} onClick={() => handleSpeed(0.75)}>0.75</li>
-										<li style={{ backgroundColor: speed === 1 ? '#eeee' : undefined }} onClick={() => handleSpeed(1)}>1</li>
-										<li style={{ backgroundColor: speed === 1.25 ? '#eeee' : undefined }} onClick={() => handleSpeed(1.25)}>1.25</li>
-										<li style={{ backgroundColor: speed === 1.5 ? '#eeee' : undefined }} onClick={() => handleSpeed(1.5)}>1.5</li>
-										<li style={{ backgroundColor: speed === 1.75 ? '#eeee' : undefined }} onClick={() => handleSpeed(1.75)}>1.75</li>
-										<li style={{ backgroundColor: speed === 2 ? '#eeee' : undefined }} onClick={() => handleSpeed(2)}>2</li>
+							<div
+								className={style.customSelect}
+								style={{ display: !uiState.isSettingsOpen ? 'none' : undefined }}>
+								<div
+									className={style.speedControl}
+									onClick={() =>
+										dispatchUI({
+											type: 'SET_SETTING_PANEL',
+											panel: uiState.activeSettingPanel === 'speed' ? null : 'speed'
+										})
+									}>
+									ความเร็วในการเล่น
+								</div>
+								{uiState.activeSettingPanel === 'speed' && (
+									<ul className={style.speedList}>
+										{[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((speed) => (
+											<li
+												key={speed}
+												className={style.speedMenu}
+												style={{
+													backgroundColor:
+														playbackState.playbackSpeed === speed ? '#eeee' : undefined
+												}}
+												onClick={() => setPlaybackSpeed(speed)}>
+												{speed}
+											</li>
+										))}
 									</ul>
 								)}
 							</div>
 						</div>
 					</div>
+
+					{/* Center play/pause button */}
 					<Icon
-						name={isLoading ? 'hide' : isEnded ? 'restart' : isPaused ? 'play' : 'pause'}
+						name={
+							playbackState.isLoading
+								? 'hide'
+								: playbackState.isEnded
+									? 'restart'
+									: !playbackState.isPlaying
+										? 'play'
+										: 'pause'
+						}
 						bigger
 						className={style.absoluteCenter}
-						onClick={togglePlay}
+						onClick={togglePlayPause}
 					/>
 				</div>
-				{seekStack < 0 && (
-					<div inert key={seekStack} className={style.seekLeft}>
-						{seekStack.toString()}
+
+				{/* Seek indicators */}
+				{uiState.seekStack < 0 && (
+					<div inert key={uiState.seekStack} className={style.seekLeft}>
+						{uiState.seekStack.toString()}
 					</div>
 				)}
-				{seekStack > 0 && (
-					<div
-						inert
-						key={seekStack}
-						className={style.seekRight}>{`+${seekStack.toString()}`}</div>
+				{uiState.seekStack > 0 && (
+					<div inert key={uiState.seekStack} className={style.seekRight}>
+						{`+${uiState.seekStack.toString()}`}
+					</div>
 				)}
-				{isLoading && (
+
+				{/* Loading indicator */}
+				{playbackState.isLoading && (
 					<div className={style.loadingContainer}>
 						<Icon name='loading' />
 					</div>
 				)}
-				{!isPlayFirst && (
+
+				{/* Initial play button */}
+				{!playbackState.hasStartedPlaying && (
 					<div className={style.playFirstContainer}>
 						<button
 							type='button'
+							aria-label='Play video'
+							className={style.btnCenterPlay}
 							onFocus={(e) => e.currentTarget.blur()}
 							onClick={() => {
-								setIsPlayFirst(true)
-								playVideo()
+								dispatchPlayback({ type: 'PLAY' })
+								play()
 							}}>
 							<Icon name='play' bigger />
 						</button>

@@ -1,6 +1,6 @@
 {
   "name": "@tiwz/react-video-player",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "author": "tiwz",
   "repository": {
     "type": "git",
@@ -15,6 +15,7 @@
     "@rollup/plugin-typescript": "^12.3.0",
     "@types/node": "^25.0.10",
     "@types/react": "^19.2.9",
+    "hls.js": "^1.6.15",
     "postcss": "^8.5.6",
     "rollup": "^4.57.0",
     "rollup-plugin-dts": "^6.3.0",
@@ -33,7 +34,7 @@
       "require": "./dist/index.js"
     },
     "./style": {
-        "default": "./dist/index.css"
+      "default": "./dist/index.css"
     }
   },
   "bugs": {
@@ -52,7 +53,10 @@
   ],
   "license": "MIT",
   "scripts": {
-    "rollup": "rollup -c --bundleConfigAsCjs"
+    "export": "rollup -c --bundleConfigAsCjs"
   },
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "autoprefixer": "^10.4.23"
+  }
 }

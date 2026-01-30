@@ -1,10 +1,3 @@
-/*
-* Prefixed by https://autoprefixer.github.io
-* PostCSS: v8.4.14,
-* Autoprefixer: v10.4.7
-* Browsers: last 4 version
-*/
-
 .hide {
 	display: none;
 }
@@ -173,7 +166,7 @@
 	top: 2.8em;
 	right: 1em;
 	z-index: 2;
-	padding-block: 0.4em;
+	padding: 0.3em;
 	color: black;
 	min-width: 12em;
 	border-radius: 6px;
@@ -182,13 +175,15 @@
 	background-color: #fff;
 	-webkit-box-shadow: 0 0 2px #000a;
 	        box-shadow: 0 0 2px #000a;
-	div, ul li {
-		cursor: pointer;
-		padding: 0.4em 0;
-		text-align: center;
-		border-radius: 8px;
-	}
 }
+
+.speedControl {
+	text-align: center;
+	font-size: 12pt;
+	cursor: pointer;
+	padding-block: 0.3em;
+}
+
 .hoverTime {
 	top: -3em;
 	color: black;
@@ -223,6 +218,7 @@
 .backProcess {
 	width: 100%;
 	height: 4px;
+	max-width: 100%;
 	border-radius: 2em;
 	background-color: #fff5;
 }
@@ -231,6 +227,7 @@
 	left: 0;
 	width: 100%;
 	height: 4px;
+	max-width: 100%;
 	position: absolute;
 	border-radius: 2em;
 	background-color: #fffa;
@@ -313,6 +310,65 @@
 	-webkit-animation: shaking 200ms;
 	animation: shaking 200ms;
 }
+.loadingContainer {
+	top: 50%;
+	left: 50%;
+	width: 12%;
+	display: block;
+	position: absolute;
+	-webkit-transform: translate(-50%, -50%);
+	-ms-transform: translate(-50%, -50%);
+	transform: translate(-50%, -50%);
+	svg {
+		width: 100%;
+		color: white;
+		display: block;
+	}
+}
+.playFirstContainer {
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	display: -webkit-box;
+	display: -ms-flexbox;
+	display: flex;
+	position: absolute;
+	-webkit-box-align: center;
+	-ms-flex-align: center;
+	align-items: center;
+	-webkit-box-pack: center;
+	-ms-flex-pack: center;
+	justify-content: center;
+	background-color: black;
+}
+
+.btnCenterPlay {
+	border: 0;
+	margin: 0;
+	padding: 0.6em;
+	cursor: pointer;
+	background-color: transparent;
+}
+
+.speedList {
+	list-style: none;
+	li {
+		padding: 1em;
+	}
+}
+
+.speedMenu {
+	border-radius: 15px;
+	text-align: center;
+	cursor: pointer;
+	padding: 0.3em;
+}
+
+.speedMenu:hover {
+	background-color: #00f7ff;
+}
+
 @-webkit-keyframes shaking {
 	0% {
 		-webkit-transform: translateY(-50%) scale(1);
@@ -353,47 +409,5 @@
 	.seekLeft,
 	.seekRight {
 		font-size: 3rem;
-	}
-}
-.loadingContainer {
-	top: 50%;
-	left: 50%;
-	width: 12%;
-	display: block;
-	position: absolute;
-	-webkit-transform: translate(-50%, -50%);
-	-ms-transform: translate(-50%, -50%);
-	transform: translate(-50%, -50%);
-	svg {
-		width: 100%;
-		color: white;
-		display: block;
-	}
-}
-.playFirstContainer {
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	display: -webkit-box;
-	display: -ms-flexbox;
-	display: flex;
-	position: absolute;
-	-webkit-box-align: center;
-	-ms-flex-align: center;
-	align-items: center;
-	-webkit-box-pack: center;
-	-ms-flex-pack: center;
-	justify-content: center;
-	background-color: black;
-	button {
-		border: 0;
-		margin: 0;
-		padding: 0.6em;
-		cursor: pointer;
-		background-color: transparent;
-		svg {
-			color: white;
-		}
 	}
 }
