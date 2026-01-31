@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
 import Hls, { type HlsConfig } from 'hls.js'
-import style from './VideoPlayer.module.css'
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
 import Icon from './Icon'
+import style from './VideoPlayer.module.css'
 
 // Constants
 const SEEK_SECONDS = 10
@@ -236,7 +236,7 @@ function isPictureInPictureSupported(): boolean {
 // Screen Orientation API helper
 async function lockOrientation(video: HTMLVideoElement, isFullscreen: boolean): Promise<void> {
 	const isLandscape = video.videoWidth > video.videoHeight
-	
+
 	if (
 		typeof window !== 'undefined' &&
 		window.screen &&
@@ -265,7 +265,13 @@ function playbackReducer(state: PlaybackState, action: VideoAction): PlaybackSta
 		case 'END':
 			return { ...state, isEnded: true, isPlaying: false }
 		case 'ERROR':
-			return { ...state, isError: true, isLoading: false, isEnded: true, hasStartedPlaying: false }
+			return {
+				...state,
+				isError: true,
+				isLoading: false,
+				isEnded: true,
+				hasStartedPlaying: false
+			}
 		case 'LOADING':
 			return { ...state, isLoading: action.isLoading }
 		case 'MUTE':
@@ -567,22 +573,25 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 		[playbackState.isPlaying, showControls]
 	)
 
-	const handleProgressBarHover = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
-		if (animationFrameRef.current) {
-			cancelAnimationFrame(animationFrameRef.current)
-		}
+	const handleProgressBarHover = useCallback(
+		(e: React.MouseEvent<HTMLInputElement>) => {
+			if (animationFrameRef.current) {
+				cancelAnimationFrame(animationFrameRef.current)
+			}
 
-		const target = e.currentTarget
-		animationFrameRef.current = requestAnimationFrame(() => {
-			animationFrameRef.current = null
-			const rect = target.getBoundingClientRect()
-			const x = e.clientX - rect.left
-			const percentage = Math.min(Math.max(x / rect.width, 0), 1)
-			const time = percentage * playbackState.duration
+			const target = e.currentTarget
+			animationFrameRef.current = requestAnimationFrame(() => {
+				animationFrameRef.current = null
+				const rect = target.getBoundingClientRect()
+				const x = e.clientX - rect.left
+				const percentage = Math.min(Math.max(x / rect.width, 0), 1)
+				const time = percentage * playbackState.duration
 
-			dispatchUI({ type: 'SET_HOVER', time, x })
-		})
-	}, [playbackState.duration])
+				dispatchUI({ type: 'SET_HOVER', time, x })
+			})
+		},
+		[playbackState.duration]
+	)
 
 	const handleProgressBarLeave = useCallback(() => {
 		dispatchUI({ type: 'SET_HOVER', time: null, x: 0 })
@@ -593,7 +602,7 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 		(event: React.SyntheticEvent<HTMLVideoElement>) => {
 			const newTime = event.currentTarget.currentTime
 			const timeDifference = Math.abs(newTime - playbackState.currentTime)
-			
+
 			// Only update if time changed by more than 1 second or crossed a second boundary
 			if (
 				timeDifference > 1 ||
@@ -645,7 +654,9 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 			hlsInstanceRef.current = hlsInstance
 			hlsInstance.loadSource(videoUrl)
 			hlsInstance.attachMedia(videoRef.current)
-			hlsInstance.on(Hls.Events.ERROR, () => dispatchPlayback({ type: 'ERROR', isLoading: false }))
+			hlsInstance.on(Hls.Events.ERROR, () =>
+				dispatchPlayback({ type: 'ERROR', isLoading: false })
+			)
 			// Stop loading when video ends (for live streams without EXT-X-ENDLIST)
 			const handleVideoEnded = () => {
 				if (hlsInstance) {
@@ -792,8 +803,17 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 					controls={false}
 					className={style.video}
 					onTimeUpdate={handleTimeUpdate}
+					onDurationChange={(e) =>
+						dispatchPlayback({
+							type: 'SET_DURATION',
+							duration: e.currentTarget.duration
+						})
+					}
 					onLoadedMetadata={(e) =>
-						dispatchPlayback({ type: 'SET_DURATION', duration: e.currentTarget.duration })
+						dispatchPlayback({
+							type: 'SET_DURATION',
+							duration: e.currentTarget.duration
+						})
 					}
 					onVolumeChange={(e) =>
 						dispatchPlayback({ type: 'SET_VOLUME', volume: e.currentTarget.volume })
@@ -852,8 +872,12 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 									className={style.rangeTime}
 									aria-label='Video progress'
 									onFocus={(e) => e.currentTarget.blur()}
-									onPointerDown={() => dispatchUI({ type: 'SET_RANGING', isRanging: true })}
-									onPointerUp={() => dispatchUI({ type: 'SET_RANGING', isRanging: false })}
+									onPointerDown={() =>
+										dispatchUI({ type: 'SET_RANGING', isRanging: true })
+									}
+									onPointerUp={() =>
+										dispatchUI({ type: 'SET_RANGING', isRanging: false })
+									}
 									onPointerCancel={() =>
 										dispatchUI({ type: 'SET_RANGING', isRanging: false })
 									}
@@ -877,7 +901,9 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 								onFocus={(e) => e.currentTarget.blur()}>
 								<Icon
 									name={
-										playbackState.isMuted || playbackState.volume === 0 ? 'muted' : 'volume'
+										playbackState.isMuted || playbackState.volume === 0
+											? 'muted'
+											: 'volume'
 									}
 								/>
 							</button>
@@ -887,7 +913,8 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 								step='any'
 								value={playbackState.isMuted ? 0 : playbackState.volume}
 								className={
-									style.rangeVolume + (isMobile.current ? ` ${style.hideOnMobile}` : '')
+									style.rangeVolume +
+									(isMobile.current ? ` ${style.hideOnMobile}` : '')
 								}
 								aria-label='Volume'
 								onFocus={(e) => e.currentTarget.blur()}
@@ -937,7 +964,10 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 									onClick={() =>
 										dispatchUI({
 											type: 'SET_SETTING_PANEL',
-											panel: uiState.activeSettingPanel === 'speed' ? null : 'speed'
+											panel:
+												uiState.activeSettingPanel === 'speed'
+													? null
+													: 'speed'
 										})
 									}>
 									ความเร็วในการเล่น
@@ -950,7 +980,9 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 												className={style.speedMenu}
 												style={{
 													backgroundColor:
-														playbackState.playbackSpeed === speed ? '#eeee' : undefined
+														playbackState.playbackSpeed === speed
+															? '#eeee'
+															: undefined
 												}}
 												onClick={() => setPlaybackSpeed(speed)}>
 												{speed}
@@ -999,7 +1031,7 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 				)}
 
 				{/* Initial play button */}
-				{(!playbackState.hasStartedPlaying) && (
+				{!playbackState.hasStartedPlaying && (
 					<div className={style.playFirstContainer}>
 						<button
 							type='button'

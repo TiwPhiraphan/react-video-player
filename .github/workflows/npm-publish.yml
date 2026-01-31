@@ -20,6 +20,8 @@ jobs:
           registry-url: https://registry.npmjs.org/
       - name: Install Deps
         run: npm install
+      - name: Lint code
+        run: npm run lint
       - name: Build component
         run: npm run export
       - name: Publish package

@@ -43,7 +43,7 @@ yarn add @tiwz/react-video-player
 
 ```tsx
 import { VideoPlayer } from '@tiwz/react-video-player'
-import '@tiwz/react-video-player/style'
+import '@tiwz/react-video-player/model'
 
 export default function App() {
   return (
