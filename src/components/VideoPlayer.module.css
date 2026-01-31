@@ -1,424 +1,465 @@
+/* ===== Base Utility Classes ===== */
 .hide {
-	display: none;
+  display: none;
 }
+
 .visit {
-	visibility: visible;
+  visibility: visible;
 }
+
 .invisit {
-	visibility: hidden;
+  visibility: hidden;
 }
+
 .opacity0 {
-	opacity: 0;
+  opacity: 0;
 }
+
 .opacity1 {
-	opacity: 1;
+  opacity: 1;
 }
+
+/* ===== Video Container ===== */
 .videoContainer {
-	width: 100%;
-	aspect-ratio: 16 / 9;
+  width: 100%;
+  aspect-ratio: 16 / 9;
 }
+
+/* ===== Absolute Center ===== */
 .absoluteCenter {
-	top: 50%;
-	left: 50%;
-	cursor: pointer;
-	position: absolute;
-	-webkit-transform: translate(-50%, -50%);
-	-ms-transform: translate(-50%, -50%);
-	transform: translate(-50%, -50%);
+  top: 50%;
+  left: 50%;
+  cursor: pointer;
+  position: absolute;
+  transform: translate(-50%, -50%);
 }
+
+/* ===== Wrapper Reset ===== */
 .wrapper,
 .wrapper * {
-	margin: 0;
-	padding: 0;
-	-webkit-user-select: none;
-	-moz-user-select: none;
-	-ms-user-select: none;
-	user-select: none;
-	-webkit-box-sizing: border-box;
-	box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  box-sizing: border-box;
 }
+
+/* ===== Main Wrapper ===== */
 .wrapper {
-	width: 100%;
-	color: white;
-	display: block;
-	position: relative;
-	aspect-ratio: 16 / 9;
-	background-color: black;
+  width: 100%;
+  color: white;
+  display: block;
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background-color: black;
 }
+
+/* ===== Video Element ===== */
 .video {
-	width: 100%;
-	height: 100%;
-	display: block;
+  width: 100%;
+  height: 100%;
+  display: block;
 }
+
+/* ===== Controller ===== */
 .controller {
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	display: -webkit-box;
-	display: -ms-flexbox;
-	display: flex;
-	position: absolute;
-	-webkit-box-align: center;
-	-ms-flex-align: center;
-	align-items: center;
-	-webkit-transition: all 200ms;
-	-o-transition: all 200ms;
-	transition: all 200ms;
-	-webkit-box-orient: vertical;
-	-webkit-box-direction: normal;
-	-ms-flex-direction: column;
-	flex-direction: column;
-	-webkit-box-pack: center;
-	-ms-flex-pack: center;
-	justify-content: center;
-	background-color: rgba(0, 0, 0, 0.5);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  position: absolute;
+  align-items: center;
+  transition: all 200ms;
+  flex-direction: column;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.5);
 }
+
+/* ===== Title ===== */
 .title {
-	width: 100%;
-	font-weight: 400;
-	font-size: 1.1rem;
-	line-height: 1.1rem;
-	padding: 1rem 0 0 1rem;
-	p {
-		display: block;
-		overflow: hidden;
-		white-space: nowrap;
-		-o-text-overflow: ellipsis;
-		text-overflow: ellipsis;
-		width: calc(100% - 3.6rem);
-	}
+  width: 100%;
+  font-weight: 400;
+  font-size: 1.1rem;
+  line-height: 1.1rem;
+  padding: 1rem 0 0 1rem;
 }
+
+.title p {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  width: calc(100% - 3.6rem);
+}
+
+/* ===== Center ===== */
 .center {
-	-webkit-box-flex: 1;
-	-ms-flex: 1;
-	flex: 1;
-	width: 100%;
-	display: -webkit-box;
-	display: -ms-flexbox;
-	display: flex;
-	-webkit-box-orient: horizontal;
-	-webkit-box-direction: normal;
-	-ms-flex-direction: row;
-	flex-direction: row;
-	div {
-		-webkit-box-flex: 1;
-		-ms-flex: 1;
-		flex: 1;
-		display: -webkit-box;
-		display: -ms-flexbox;
-		display: flex;
-	}
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
 }
+
+.center div {
+  flex: 1;
+  display: flex;
+}
+
+/* ===== Controls ===== */
 .controls {
-	gap: 0.6em;
-	width: 100%;
-	display: -webkit-box;
-	display: -ms-flexbox;
-	display: flex;
-	padding: 0.8em 1em;
+  gap: 0.6em;
+  width: 100%;
+  display: flex;
+  padding: 0.8em 1em;
 }
+
 .controls button {
-	border: 0;
-	padding: 0.25em;
-	color: white;
-	cursor: pointer;
-	-webkit-appearance: none;
-	-moz-appearance: none;
-	appearance: none;
-	-webkit-transition: background-color 200ms;
-	-o-transition: background-color 200ms;
-	transition: background-color 200ms;
-	background-color: #fff0;
+  border: 0;
+  padding: 0.25em;
+  color: white;
+  cursor: pointer;
+  appearance: none;
+  transition: background-color 200ms;
+  background-color: transparent;
 }
+
 .controls button:hover {
-	border-radius: 5px;
-	background-color: #00b2ff;
+  border-radius: 5px;
+  background-color: #00b2ff;
 }
+
+/* ===== Time Wrapper ===== */
 .timeWrapper {
-	-webkit-box-flex: 1;
-	-ms-flex: 1;
-	flex: 1;
-	gap: 0.6em;
-	display: -webkit-box;
-	display: -ms-flexbox;
-	display: flex;
-	font-size: 1rem;
-	-webkit-box-align: center;
-	-ms-flex-align: center;
-	align-items: center;
-	padding-inline: 0.3em;
-	font-family: monospace;
-	article {
-		font-size: 1em;
-	}
+  flex: 1;
+  gap: 0.6em;
+  display: flex;
+  font-size: 1rem;
+  align-items: center;
+  padding-inline: 0.3em;
+  font-family: monospace;
 }
+
+.timeWrapper article {
+  font-size: 1em;
+}
+
+/* ===== Button Setting ===== */
 .btnSetting {
-	top: 0.8em;
-	right: 1em;
-	font-size: 0.8em;
-	position: absolute;
-	button svg {
-		width: 2em !important;
-	}
+  top: 0.8em;
+  right: 1em;
+  font-size: 0.8em;
+  position: absolute;
 }
+
+.btnSetting button svg {
+  width: 2em !important;
+}
+
+/* ===== Custom Select ===== */
 .customSelect {
-	top: 2.8em;
-	right: 1em;
-	z-index: 2;
-	padding: 0.3em;
-	color: black;
-	min-width: 12em;
-	border-radius: 6px;
-	position: absolute;
-	padding-inline: 1em;
-	background-color: #fff;
-	-webkit-box-shadow: 0 0 2px #000a;
-	box-shadow: 0 0 2px #000a;
+  top: 2.8em;
+  right: 1em;
+  z-index: 2;
+  padding: 0.3em;
+  color: black;
+  min-width: 12em;
+  border-radius: 6px;
+  position: absolute;
+  padding-inline: 1em;
+  background-color: #fff;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
 }
 
+/* ===== Speed Control ===== */
 .speedControl {
-	text-align: center;
-	font-size: 12pt;
-	cursor: pointer;
-	padding-block: 0.3em;
+  text-align: center;
+  font-size: 12pt;
+  cursor: pointer;
+  padding-block: 0.3em;
 }
 
+/* ===== Hover Time ===== */
 .hoverTime {
-	top: -3em;
-	color: black;
-	padding: 0.1em 0.8em;
-	font-size: 0.8em;
-	position: absolute;
-	border-radius: 99px;
-	-webkit-box-shadow: 0 0 2px #000a;
-	box-shadow: 0 0 2px #000a;
-	background-color: white;
+  top: -3em;
+  color: black;
+  padding: 0.1em 0.8em;
+  font-size: 0.8em;
+  position: absolute;
+  border-radius: 99px;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
+  background-color: white;
 }
+
 .hoverTime::before {
-	top: 99%;
-	width: 0;
-	height: 0;
-	left: 50%;
-	content: "";
-	position: absolute;
-	-webkit-transform: translateX(-50%);
-	-ms-transform: translateX(-50%);
-	transform: translateX(-50%);
-	border-top: 4px solid #fff;
-	border-left: 4px solid transparent;
-	border-right: 4px solid transparent;
+  top: 99%;
+  width: 0;
+  height: 0;
+  left: 50%;
+  content: "";
+  position: absolute;
+  transform: translateX(-50%);
+  border-top: 4px solid #fff;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
 }
+
+/* ===== Time Control ===== */
 .timeControl {
-	-webkit-box-flex: 1;
-	-ms-flex: 1;
-	flex: 1;
-	position: relative;
+  flex: 1;
+  position: relative;
 }
+
+/* ===== Progress Background ===== */
 .backProcess {
-	width: 100%;
-	height: 4px;
-	max-width: 100%;
-	border-radius: 2em;
-	background-color: #fff5;
+  width: 100%;
+  height: 4px;
+  max-width: 100%;
+  border-radius: 2em;
+  background-color: rgba(255, 255, 255, 0.3);
 }
+
+/* ===== Progress Bar ===== */
 .progressBar {
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 4px;
-	max-width: 100%;
-	position: absolute;
-	border-radius: 2em;
-	background-color: #fffa;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  max-width: 100%;
+  position: absolute;
+  border-radius: 2em;
+  background-color: rgba(255, 255, 255, 0.6);
 }
+
+/* ===== Range Time Slider ===== */
 .rangeTime {
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 4px;
-	-webkit-appearance: none;
-	-moz-appearance: none;
-	appearance: none;
-	position: absolute;
-	border-radius: 2em;
-	background-color: transparent;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  appearance: none;
+  position: absolute;
+  border-radius: 2em;
+  background-color: transparent;
 }
+
 .rangeTime::-webkit-slider-thumb {
-	-webkit-appearance: none;
-	appearance: none;
-	width: 1em;
-	height: 1em;
-	border-radius: 2em;
-	background-color: #fff;
+  appearance: none;
+  border: 0;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  background-color: #fff;
+  cursor: pointer;
 }
-.rangeTime:hover {
-	cursor: pointer;
-}
+
 .rangeTime::-webkit-slider-thumb:hover {
-	-webkit-box-shadow: #fff4 0 0 1px 3px;
-	box-shadow: #fff4 0 0 1px 3px;
+  box-shadow: rgba(255, 255, 255, 0.3) 0 0 1px 3px;
 }
+
+.rangeTime::-moz-range-thumb {
+  border: 0;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  background-color: #fff;
+  cursor: pointer;
+}
+
+.rangeTime::-moz-range-thumb:hover {
+  box-shadow: rgba(255, 255, 255, 0.3) 0 0 1px 3px;
+}
+
+.rangeTime::-ms-thumb {
+  border: 0;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  background-color: #fff;
+  cursor: pointer;
+}
+
+.rangeTime::-ms-thumb:hover {
+  box-shadow: rgba(255, 255, 255, 0.3) 0 0 1px 3px;
+}
+
+.rangeTime:hover {
+  cursor: pointer;
+}
+
+/* ===== Volume Wrapper ===== */
 .volumeWrapper {
-	gap: 0.1em;
-	display: -webkit-box;
-	display: -ms-flexbox;
-	display: flex;
-	-webkit-box-align: center;
-	-ms-flex-align: center;
-	align-items: center;
+  gap: 0.1em;
+  display: flex;
+  align-items: center;
 }
+
+/* ===== Range Volume Slider ===== */
 .rangeVolume {
-	width: 4em;
-	height: 4px;
-	-webkit-appearance: none;
-	-moz-appearance: none;
-	appearance: none;
-	border-radius: 2em;
-	cursor: pointer;
-	background-color: transparent;
+  width: 4em;
+  height: 4px;
+  appearance: none;
+  border-radius: 2em;
+  cursor: pointer;
+  background-color: transparent;
 }
+
 .rangeVolume::-webkit-slider-thumb {
-	-webkit-appearance: none;
-	appearance: none;
-	width: 1em;
-	height: 1em;
-	border-radius: 2em;
-	background-color: #fff;
+  appearance: none;
+  border: 0;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  background-color: #fff;
+  cursor: pointer;
 }
+
 .rangeVolume::-webkit-slider-thumb:hover {
-	-webkit-box-shadow: #fff4 0 0 1px 3px;
-	box-shadow: #fff4 0 0 1px 3px;
+  box-shadow: rgba(255, 255, 255, 0.3) 0 0 1px 3px;
 }
+
+.rangeVolume::-moz-range-thumb {
+  border: 0;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  background-color: #fff;
+  cursor: pointer;
+}
+
+.rangeVolume::-moz-range-thumb:hover {
+  box-shadow: rgba(255, 255, 255, 0.3) 0 0 1px 3px;
+}
+
+.rangeVolume::-ms-thumb {
+  border: 0;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  background-color: #fff;
+  cursor: pointer;
+}
+
+.rangeVolume::-ms-thumb:hover {
+  box-shadow: rgba(255, 255, 255, 0.3) 0 0 1px 3px;
+}
+
+/* ===== Seek Animations ===== */
 .seekLeft,
 .seekRight {
-	top: 50%;
-	font-size: 1.6rem;
-	position: absolute;
-	text-shadow: 0 0 2px #0004;
-	-webkit-transform: translateY(-50%);
-	-ms-transform: translateY(-50%);
-	transform: translateY(-50%);
+  top: 50%;
+  font-size: 1.6rem;
+  position: absolute;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+  transform: translateY(-50%);
 }
+
 .seekLeft {
-	left: 20%;
-	-webkit-animation: shaking 200ms;
-	animation: shaking 200ms;
+  left: 20%;
+  animation: shaking 200ms;
 }
+
 .seekRight {
-	right: 20%;
-	-webkit-animation: shaking 200ms;
-	animation: shaking 200ms;
+  right: 20%;
+  animation: shaking 200ms;
 }
+
+/* ===== Loading Container ===== */
 .loadingContainer {
-	top: 50%;
-	left: 50%;
-	width: 12%;
-	display: block;
-	position: absolute;
-	-webkit-transform: translate(-50%, -50%);
-	-ms-transform: translate(-50%, -50%);
-	transform: translate(-50%, -50%);
-	svg {
-		width: 100%;
-		color: white;
-		display: block;
-	}
+  top: 50%;
+  left: 50%;
+  width: 12%;
+  display: block;
+  position: absolute;
+  transform: translate(-50%, -50%);
 }
+
+.loadingContainer svg {
+  width: 100%;
+  color: white;
+  display: block;
+}
+
+/* ===== Play First Container ===== */
 .playFirstContainer {
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	display: -webkit-box;
-	display: -ms-flexbox;
-	display: flex;
-	position: absolute;
-	-webkit-box-align: center;
-	-ms-flex-align: center;
-	align-items: center;
-	-webkit-box-pack: center;
-	-ms-flex-pack: center;
-	justify-content: center;
-	background-color: black;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  position: absolute;
+  align-items: center;
+  justify-content: center;
+  background-color: black;
 }
 
+/* ===== Center Play Button ===== */
 .btnCenterPlay {
-	border: 0;
-	margin: 0;
-	padding: 0.6em;
-	cursor: pointer;
-	position: relative;
-	background-color: transparent;
+  border: 0;
+  margin: 0;
+  padding: 0.6em;
+  cursor: pointer;
+  position: relative;
+  background-color: transparent;
 }
 
+/* ===== Error Message ===== */
 .errorMessage {
-	width: 200%;
-	left: -50%;
-	padding: 0.1em 0;
-	font-size: 1.4em;
-	text-align: center;
-	position: absolute;
-	color: white;
+  width: 200%;
+  left: -50%;
+  padding: 0.1em 0;
+  font-size: 1.4em;
+  text-align: center;
+  position: absolute;
+  color: white;
 }
 
+/* ===== Speed List ===== */
 .speedList {
-	list-style: none;
-	li {
-		padding: 1em;
-	}
+  list-style: none;
 }
 
+.speedList li {
+  padding: 1em;
+}
+
+/* ===== Speed Menu ===== */
 .speedMenu {
-	border-radius: 15px;
-	text-align: center;
-	cursor: pointer;
-	padding: 0.3em;
+  border-radius: 15px;
+  text-align: center;
+  cursor: pointer;
+  padding: 0.3em;
 }
 
 .speedMenu:hover {
-	background-color: #00f7ff;
+  background-color: #00f7ff;
 }
 
-@-webkit-keyframes shaking {
-	0% {
-		-webkit-transform: translateY(-50%) scale(1);
-		transform: translateY(-50%) scale(1);
-	}
-	50% {
-		-webkit-transform: translateY(-50%) scale(2);
-		transform: translateY(-50%) scale(2);
-	}
-	100% {
-		-webkit-transform: translateY(-50%) scale(1);
-		transform: translateY(-50%) scale(1);
-	}
-}
+/* ===== Keyframe Animations ===== */
 @keyframes shaking {
-	0% {
-		-webkit-transform: translateY(-50%) scale(1);
-		transform: translateY(-50%) scale(1);
-	}
-	50% {
-		-webkit-transform: translateY(-50%) scale(2);
-		transform: translateY(-50%) scale(2);
-	}
-	100% {
-		-webkit-transform: translateY(-50%) scale(1);
-		transform: translateY(-50%) scale(1);
-	}
+  0% {
+    transform: translateY(-50%) scale(1);
+  }
+  50% {
+    transform: translateY(-50%) scale(2);
+  }
+  100% {
+    transform: translateY(-50%) scale(1);
+  }
 }
+
+/* ===== Media Queries ===== */
 @media (max-width: 640px) {
-	.hideOnMobile {
-		display: none;
-	}
+  .hideOnMobile {
+    display: none;
+  }
 }
+
 @media (min-width: 640px) {
-	.rangeVolume {
-		width: 6em;
-	}
-	.seekLeft,
-	.seekRight {
-		font-size: 3rem;
-	}
+  .rangeVolume {
+    width: 6em;
+  }
+  .seekLeft,
+  .seekRight {
+    font-size: 3rem;
+  }
 }
