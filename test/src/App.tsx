@@ -1,4 +1,5 @@
 import { VideoPlayer } from '../../src/index'
+import './App.css'
 
 function App() {
   return (

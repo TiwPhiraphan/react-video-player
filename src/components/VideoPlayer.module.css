@@ -160,9 +160,8 @@
   top: 2.8em;
   right: 1em;
   z-index: 2;
-  padding: 0.3em;
   color: black;
-  min-width: 12em;
+  min-width: 12.5rem;
   border-radius: 6px;
   position: absolute;
   padding-inline: 1em;
@@ -175,7 +174,7 @@
   text-align: center;
   font-size: 12pt;
   cursor: pointer;
-  padding-block: 0.3em;
+  padding-block: .8em;
 }
 
 /* ===== Hover Time ===== */
@@ -415,11 +414,15 @@
 
 /* ===== Speed List ===== */
 .speedList {
+  gap: 1mm;
+  display: flex;
   list-style: none;
+  padding-bottom: 1em;
+  flex-direction: column;
 }
 
 .speedList li {
-  padding: 1em;
+  padding: .7em;
 }
 
 /* ===== Speed Menu ===== */

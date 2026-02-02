@@ -974,7 +974,7 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 								</div>
 								{uiState.activeSettingPanel === 'speed' && (
 									<ul className={style.speedList}>
-										{[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((speed) => (
+										{[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75].map((speed) => (
 											<li
 												key={speed}
 												className={style.speedMenu}
