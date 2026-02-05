@@ -585,7 +585,17 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 				const rect = target.getBoundingClientRect()
 				const x = e.clientX - rect.left
 				const percentage = Math.min(Math.max(x / rect.width, 0), 1)
-				const time = percentage * playbackState.duration
+
+				const video = videoRef.current
+				let time = 0
+	
+				if (video && video.seekable.length > 0) {
+					const start = video.seekable.start(0)
+					const end = video.seekable.end(video.seekable.length - 1)
+					time = start + percentage * (end - start)
+				} else {
+					time = percentage * playbackState.duration
+				}
 
 				dispatchUI({ type: 'SET_HOVER', time, x })
 			})
