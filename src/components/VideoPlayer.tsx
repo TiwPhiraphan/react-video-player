@@ -859,7 +859,7 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 								<div
 									className={style.hoverTime}
 									style={{
-										left: uiState.hoverX - 25,
+										left: uiState.hoverX - 27,
 										display: !uiState.hoverTime ? 'none' : undefined
 									}}>
 									{formatTime(uiState.hoverTime || 0)}
