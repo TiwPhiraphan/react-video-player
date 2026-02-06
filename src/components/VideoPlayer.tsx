@@ -47,7 +47,7 @@ type VideoAction =
 	| { type: 'PLAY' }
 	| { type: 'PAUSE' }
 	| { type: 'END' }
-	| { type: 'ERROR'; isLoading: boolean }
+	| { type: 'ERROR' }
 	| { type: 'LOADING'; isLoading: boolean }
 	| { type: 'MUTE'; isMuted: boolean }
 	| { type: 'SET_TIME'; time: number }
@@ -269,7 +269,6 @@ function playbackReducer(state: PlaybackState, action: VideoAction): PlaybackSta
 				...state,
 				isError: true,
 				isLoading: false,
-				isEnded: true,
 				hasStartedPlaying: false
 			}
 		case 'LOADING':
@@ -578,25 +577,14 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 			if (animationFrameRef.current) {
 				cancelAnimationFrame(animationFrameRef.current)
 			}
-
 			const target = e.currentTarget
 			animationFrameRef.current = requestAnimationFrame(() => {
 				animationFrameRef.current = null
 				const rect = target.getBoundingClientRect()
 				const x = e.clientX - rect.left
-				const percentage = Math.min(Math.max(x / rect.width, 0), 1)
-
-				const video = videoRef.current
-				let time = 0
-	
-				if (video && video.seekable.length > 0) {
-					const start = video.seekable.start(0)
-					const end = video.seekable.end(video.seekable.length - 1)
-					time = start + percentage * (end - start)
-				} else {
-					time = percentage * playbackState.duration
-				}
-
+				const start = Math.max(x / rect.width, 0)
+				const percentage = Math.min(start, 1)
+				const time = percentage * playbackState.duration
 				dispatchUI({ type: 'SET_HOVER', time, x })
 			})
 		},
@@ -612,8 +600,6 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 		(event: React.SyntheticEvent<HTMLVideoElement>) => {
 			const newTime = event.currentTarget.currentTime
 			const timeDifference = Math.abs(newTime - playbackState.currentTime)
-
-			// Only update if time changed by more than 1 second or crossed a second boundary
 			if (
 				timeDifference > 1 ||
 				Math.floor(newTime) !== Math.floor(playbackState.currentTime)
@@ -627,10 +613,8 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 	// Computed values
 	const bufferedPercentage = useMemo(() => {
 		if (!videoRef.current || !playbackState.duration) return 0
-
 		const buffered = videoRef.current.buffered
 		if (buffered.length === 0) return 0
-
 		let bufferedEnd = 0
 		for (let i = 0; i < buffered.length; i++) {
 			if (
@@ -664,9 +648,13 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 			hlsInstanceRef.current = hlsInstance
 			hlsInstance.loadSource(videoUrl)
 			hlsInstance.attachMedia(videoRef.current)
-			hlsInstance.on(Hls.Events.ERROR, () =>
-				dispatchPlayback({ type: 'ERROR', isLoading: false })
-			)
+			hlsInstance.on(Hls.Events.ERROR, (_, data) => {
+				if (data.type !== Hls.ErrorTypes.NETWORK_ERROR) return
+				const status = data.response?.code
+				if (status === 404 || status === 403) {
+					dispatchPlayback({ type: 'ERROR' })
+				}
+			})
 			// Stop loading when video ends (for live streams without EXT-X-ENDLIST)
 			const handleVideoEnded = () => {
 				if (hlsInstance) {
@@ -734,7 +722,6 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 				}
 			}
 		}
-
 		document.addEventListener('fullscreenchange', handleFullscreenChange)
 		return () => {
 			document.removeEventListener('fullscreenchange', handleFullscreenChange)
@@ -744,12 +731,10 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 	// Keyboard shortcuts (desktop only)
 	useEffect(() => {
 		if (isMobile.current) return
-
 		const handleKeyDown = (event: KeyboardEvent) => {
 			if ([' ', 'f', 'p', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
 				event.preventDefault()
 			}
-
 			switch (event.key) {
 				case ' ':
 					togglePlayPause()
@@ -833,7 +818,7 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 					onWaiting={() => dispatchPlayback({ type: 'LOADING', isLoading: true })}
 					onPlaying={() => dispatchPlayback({ type: 'LOADING', isLoading: false })}
 					onLoadStart={() => dispatchPlayback({ type: 'RESET' })}
-					onError={() => dispatchPlayback({ type: 'ERROR', isLoading: false })}
+					onError={() => dispatchPlayback({ type: 'ERROR' })}
 					onEnded={() => dispatchPlayback({ type: 'END' })}
 					onPlay={() => dispatchPlayback({ type: 'PLAY' })}
 					onPause={() => dispatchPlayback({ type: 'PAUSE' })}>
@@ -869,7 +854,7 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 								<div
 									className={style.hoverTime}
 									style={{
-										left: uiState.hoverX - 27,
+										left: `${uiState.hoverX - 26}px`,
 										display: !uiState.hoverTime ? 'none' : undefined
 									}}>
 									{formatTime(uiState.hoverTime || 0)}
