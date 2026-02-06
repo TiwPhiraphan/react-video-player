@@ -651,7 +651,18 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 			hlsInstance.on(Hls.Events.ERROR, (_, data) => {
 				if (data.type !== Hls.ErrorTypes.NETWORK_ERROR) return
 				const status = data.response?.code
-				if (status === 404 || status === 403) {
+				if (
+					status === 401 ||
+					status === 403 ||
+					status === 404 ||
+					status === 410 ||
+					status === 416 ||
+					status === 429 ||
+					status === 500 ||
+					status === 502 ||
+					status === 503 ||
+					status === 504
+				) {
 					dispatchPlayback({ type: 'ERROR' })
 				}
 			})
@@ -965,23 +976,20 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 													: 'speed'
 										})
 									}>
-									ความเร็วในการเล่น
+									<Icon name='speed' />
+									Speed
 								</div>
 								{uiState.activeSettingPanel === 'speed' && (
 									<ul className={style.speedList}>
-										{[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75].map((speed) => (
-											<li
-												key={speed}
-												className={style.speedMenu}
-												style={{
-													backgroundColor:
-														playbackState.playbackSpeed === speed
-															? '#eeee'
-															: undefined
-												}}
-												onClick={() => setPlaybackSpeed(speed)}>
-												{speed}
-											</li>
+										{[0.5, 0.75, 1, 1.25, 1.5, 2, 4].map((speed) => (
+											<div key={speed} className={style.speedBox} onClick={() => setPlaybackSpeed(speed)}>
+												<input
+													type='checkbox'
+													checked={playbackState.playbackSpeed === speed}
+													className={style.speedMenu}
+												/>
+												<span>{`${speed}x`}</span>
+											</div>
 										))}
 									</ul>
 								)}
