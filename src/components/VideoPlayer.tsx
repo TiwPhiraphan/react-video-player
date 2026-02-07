@@ -316,10 +316,10 @@ function uiReducer(state: UIState, action: UIAction): UIState {
 				...state,
 				isSettingsOpen: !state.isSettingsOpen,
 				isRanging: !state.isRanging,
-				activeSettingPanel: state.isSettingsOpen ? null : state.activeSettingPanel
+				activeSettingPanel: 'speed'
 			}
 		case 'CLOSE_SETTINGS':
-			return { ...state, isSettingsOpen: false, activeSettingPanel: null }
+			return { ...state, isSettingsOpen: false, activeSettingPanel: null, isRanging: false }
 		case 'SET_SETTING_PANEL':
 			return { ...state, activeSettingPanel: action.panel }
 		case 'ADD_SEEK':
@@ -981,12 +981,10 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 								</div>
 								{uiState.activeSettingPanel === 'speed' && (
 									<ul className={style.speedList}>
-										{[0.5, 0.75, 1, 1.25, 1.5, 4].map((speed) => (
-											<div key={speed} className={style.speedBox} onClick={() => {
-												setPlaybackSpeed(speed)
-												dispatchUI({ type: 'TOGGLE_SETTINGS' })
-											}}>
+										{[0.5, 0.75, 1, 1.25, 1.5, 2].map((speed) => (
+											<div key={speed} className={style.speedBox} onClick={() => setPlaybackSpeed(speed)}>
 												<input
+													readOnly
 													type='checkbox'
 													checked={playbackState.playbackSpeed === speed}
 													className={style.speedMenu}
