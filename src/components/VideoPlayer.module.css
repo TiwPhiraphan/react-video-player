@@ -1,492 +1,493 @@
 /* ===== Base Utility Classes ===== */
 .hide {
-  display: none;
+	display: none;
 }
 
 .visit {
-  visibility: visible;
+	visibility: visible;
 }
 
 .invisit {
-  visibility: hidden;
+	visibility: hidden;
 }
 
 .opacity0 {
-  opacity: 0;
+	opacity: 0;
 }
 
 .opacity1 {
-  opacity: 1;
+	opacity: 1;
 }
 
 /* ===== Video Container ===== */
 .videoContainer {
-  width: 100%;
-  aspect-ratio: 16 / 9;
+	width: 100%;
+	aspect-ratio: 16 / 9;
 }
 
 /* ===== Absolute Center ===== */
 .absoluteCenter {
-  top: 50%;
-  left: 50%;
-  cursor: pointer;
-  position: absolute;
-  transform: translate(-50%, -50%);
+	top: 50%;
+	left: 50%;
+	cursor: pointer;
+	position: absolute;
+	transform: translate(-50%, -50%);
 }
 
 /* ===== Wrapper Reset ===== */
 .wrapper,
 .wrapper * {
-  margin: 0;
-  padding: 0;
-  user-select: none;
-  box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+	user-select: none;
+	box-sizing: border-box;
 }
 
 /* ===== Main Wrapper ===== */
 .wrapper {
-  width: 100%;
-  color: white;
-  display: block;
-  position: relative;
-  aspect-ratio: 16 / 9;
-  background-color: black;
+	width: 100%;
+	color: white;
+	display: block;
+	position: relative;
+	aspect-ratio: 16 / 9;
+	background-color: black;
 }
 
 /* ===== Video Element ===== */
 .video {
-  width: 100%;
-  height: 100%;
-  display: block;
+	width: 100%;
+	height: 100%;
+	display: block;
 }
 
 /* ===== Controller ===== */
 .controller {
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  position: absolute;
-  align-items: center;
-  transition: all 200ms;
-  flex-direction: column;
-  justify-content: center;
-  background-color: rgba(0, 0, 0, 0.5);
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	position: absolute;
+	align-items: center;
+	transition: all 200ms;
+	flex-direction: column;
+	justify-content: center;
+	background-color: rgba(0, 0, 0, 0.5);
 }
 
 /* ===== Title ===== */
 .title {
-  width: 100%;
-  font-weight: 400;
-  font-size: 1.1rem;
-  line-height: 1.1rem;
-  padding: 1rem 0 0 1rem;
+	width: 100%;
+	font-weight: 400;
+	font-size: 1.1rem;
+	line-height: 1.1rem;
+	padding: 1rem 0 0 1rem;
 }
 
 .title p {
-  display: block;
-  overflow: hidden;
-  white-space: nowrap;
-  padding-bottom: 4px;
-  text-overflow: ellipsis;
-  width: calc(100% - 3.6rem);
+	display: block;
+	overflow: hidden;
+	white-space: nowrap;
+	padding-bottom: 4px;
+	text-overflow: ellipsis;
+	width: calc(100% - 3.6rem);
 }
 
 /* ===== Center ===== */
 .center {
-  flex: 1;
-  width: 100%;
-  display: flex;
-  flex-direction: row;
+	flex: 1;
+	width: 100%;
+	display: flex;
+	flex-direction: row;
 }
 
 .center div {
-  flex: 1;
-  display: flex;
+	flex: 1;
+	display: flex;
 }
 
 /* ===== Controls ===== */
 .controls {
-  gap: 0.6em;
-  width: 100%;
-  display: flex;
-  padding: 0.8em 1em;
+	gap: 0.6em;
+	width: 100%;
+	display: flex;
+	padding: 0.8em 1em;
 }
 
 .controls button {
-  border: 0;
-  padding: 0.25em;
-  color: white;
-  cursor: pointer;
-  appearance: none;
-  transition: background-color 200ms;
-  background-color: transparent;
+	border: 0;
+	padding: 0.25em;
+	color: white;
+	cursor: pointer;
+	appearance: none;
+	transition: background-color 200ms;
+	background-color: transparent;
 }
 
 .controls button:hover {
-  border-radius: 5px;
-  background-color: #00b2ff;
+	border-radius: 5px;
+	background-color: #00b2ff;
 }
 
 /* ===== Time Wrapper ===== */
 .timeWrapper {
-  flex: 1;
-  gap: 0.6em;
-  display: flex;
-  font-size: 1rem;
-  align-items: center;
-  padding-inline: 0.3em;
-  font-family: monospace;
+	flex: 1;
+	gap: 0.6em;
+	display: flex;
+	font-size: 1rem;
+	align-items: center;
+	padding-inline: 0.3em;
+	font-family: monospace;
 }
 
 .timeWrapper article {
-  font-size: 1em;
+	font-size: 1em;
 }
 
 /* ===== Button Setting ===== */
 .btnSetting {
-  top: 0.8em;
-  right: 1em;
-  font-size: 0.8em;
-  position: absolute;
+	top: 0.8em;
+	right: 1em;
+	font-size: 0.8em;
+	position: absolute;
 }
 
 .btnSetting button svg {
-  width: 1.8em !important;
+	width: 1.8em !important;
 }
 
 /* ===== Custom Select ===== */
 .customSelect {
-  top: 2.8em;
-  right: 1em;
-  z-index: 2;
-  color: black;
-  min-width: calc(4rem + 7ch);
-  border-radius: 6px;
-  position: absolute;
-  padding-inline: 1em;
-  background-color: #fff;
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
+	top: 2.8em;
+	right: 1em;
+	z-index: 2;
+	color: black;
+	min-width: calc(4rem + 7ch);
+	border-radius: 6px;
+	position: absolute;
+	padding-inline: 1em;
+	background-color: #fff;
+	box-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
 }
 
 /* ===== Speed Control ===== */
 .speedControl {
-  display: flex;
-  font-weight: 400;
-  gap: .4em;
-  align-items: center;
-  justify-content: center;
-  font-size: 12pt;
-  cursor: pointer;
-  padding-block: .4em;
+	display: flex;
+	font-weight: 400;
+	gap: 0.4em;
+	align-items: center;
+	justify-content: center;
+	font-size: 12pt;
+	cursor: pointer;
+	padding-block: 0.4em;
 }
 
 /* ===== Hover Time ===== */
 .hoverTime {
-  top: -3em;
-  width: 54px;
-  color: black;
-  text-align: center;
-  padding: 0.16em 0;
-  font-size: 0.8em;
-  position: absolute;
-  border-radius: 99px;
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
-  background-color: white;
+	top: -3em;
+	width: 54px;
+	color: black;
+	text-align: center;
+	padding: 0.16em 0;
+	font-size: 0.8em;
+	position: absolute;
+	border-radius: 99px;
+	box-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
+	background-color: white;
 }
 
 .hoverTime::before {
-  top: 99%;
-  width: 0;
-  height: 0;
-  left: 50%;
-  content: "";
-  position: absolute;
-  transform: translateX(-50%);
-  border-top: 4px solid #fff;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
+	top: 99%;
+	width: 0;
+	height: 0;
+	left: 50%;
+	content: "";
+	position: absolute;
+	transform: translateX(-50%);
+	border-top: 4px solid #fff;
+	border-left: 4px solid transparent;
+	border-right: 4px solid transparent;
 }
 
 /* ===== Time Control ===== */
 .timeControl {
-  flex: 1;
-  position: relative;
+	flex: 1;
+	position: relative;
 }
 
 /* ===== Progress Background ===== */
 .backProcess {
-  width: 100%;
-  height: 4px;
-  max-width: 100%;
-  border-radius: 2em;
-  background-color: rgba(255, 255, 255, 0.3);
+	width: 100%;
+	height: 4px;
+	max-width: 100%;
+	border-radius: 2em;
+	background-color: rgba(255, 255, 255, 0.3);
 }
 
 /* ===== Progress Bar ===== */
 .progressBar {
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 4px;
-  max-width: 100%;
-  position: absolute;
-  border-radius: 2em;
-  background-color: rgba(255, 255, 255, 0.6);
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 4px;
+	max-width: 100%;
+	position: absolute;
+	border-radius: 2em;
+	background-color: rgba(255, 255, 255, 0.6);
 }
 
 /* ===== Range Time Slider ===== */
 .rangeTime {
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 4px;
-  appearance: none;
-  position: absolute;
-  border-radius: 2em;
-  background-color: transparent;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 4px;
+	max-width: 100%;
+	appearance: none;
+	position: absolute;
+	border-radius: 2em;
+	background-color: transparent;
 }
 
 .rangeTime::-webkit-slider-thumb {
-  appearance: none;
-  border: 0;
-  width: 1em;
-  height: 1em;
-  border-radius: 50%;
-  background-color: #fff;
-  cursor: pointer;
+	appearance: none;
+	border: 0;
+	width: 1em;
+	height: 1em;
+	border-radius: 50%;
+	background-color: #fff;
+	cursor: pointer;
 }
 
 .rangeTime::-webkit-slider-thumb:hover {
-  box-shadow: rgba(255, 255, 255, 0.3) 0 0 1px 3px;
+	box-shadow: rgba(255, 255, 255, 0.3) 0 0 1px 3px;
 }
 
 .rangeTime::-moz-range-thumb {
-  border: 0;
-  width: 1em;
-  height: 1em;
-  border-radius: 50%;
-  background-color: #fff;
-  cursor: pointer;
+	border: 0;
+	width: 1em;
+	height: 1em;
+	border-radius: 50%;
+	background-color: #fff;
+	cursor: pointer;
 }
 
 .rangeTime::-moz-range-thumb:hover {
-  box-shadow: rgba(255, 255, 255, 0.3) 0 0 1px 3px;
+	box-shadow: rgba(255, 255, 255, 0.3) 0 0 1px 3px;
 }
 
 .rangeTime::-ms-thumb {
-  border: 0;
-  width: 1em;
-  height: 1em;
-  border-radius: 50%;
-  background-color: #fff;
-  cursor: pointer;
+	border: 0;
+	width: 1em;
+	height: 1em;
+	border-radius: 50%;
+	background-color: #fff;
+	cursor: pointer;
 }
 
 .rangeTime::-ms-thumb:hover {
-  box-shadow: rgba(255, 255, 255, 0.3) 0 0 1px 3px;
+	box-shadow: rgba(255, 255, 255, 0.3) 0 0 1px 3px;
 }
 
 .rangeTime:hover {
-  cursor: pointer;
+	cursor: pointer;
 }
 
 /* ===== Volume Wrapper ===== */
 .volumeWrapper {
-  gap: 0.1em;
-  display: flex;
-  align-items: center;
+	gap: 0.1em;
+	display: flex;
+	align-items: center;
 }
 
 /* ===== Range Volume Slider ===== */
 .rangeVolume {
-  width: 4em;
-  height: 4px;
-  appearance: none;
-  border-radius: 2em;
-  cursor: pointer;
-  background-color: transparent;
+	width: 4em;
+	height: 4px;
+	appearance: none;
+	border-radius: 2em;
+	cursor: pointer;
+	background-color: transparent;
 }
 
 .rangeVolume::-webkit-slider-thumb {
-  appearance: none;
-  border: 0;
-  width: 1em;
-  height: 1em;
-  border-radius: 50%;
-  background-color: #fff;
-  cursor: pointer;
+	appearance: none;
+	border: 0;
+	width: 1em;
+	height: 1em;
+	border-radius: 50%;
+	background-color: #fff;
+	cursor: pointer;
 }
 
 .rangeVolume::-webkit-slider-thumb:hover {
-  box-shadow: rgba(255, 255, 255, 0.3) 0 0 1px 3px;
+	box-shadow: rgba(255, 255, 255, 0.3) 0 0 1px 3px;
 }
 
 .rangeVolume::-moz-range-thumb {
-  border: 0;
-  width: 1em;
-  height: 1em;
-  border-radius: 50%;
-  background-color: #fff;
-  cursor: pointer;
+	border: 0;
+	width: 1em;
+	height: 1em;
+	border-radius: 50%;
+	background-color: #fff;
+	cursor: pointer;
 }
 
 .rangeVolume::-moz-range-thumb:hover {
-  box-shadow: rgba(255, 255, 255, 0.3) 0 0 1px 3px;
+	box-shadow: rgba(255, 255, 255, 0.3) 0 0 1px 3px;
 }
 
 .rangeVolume::-ms-thumb {
-  border: 0;
-  width: 1em;
-  height: 1em;
-  border-radius: 50%;
-  background-color: #fff;
-  cursor: pointer;
+	border: 0;
+	width: 1em;
+	height: 1em;
+	border-radius: 50%;
+	background-color: #fff;
+	cursor: pointer;
 }
 
 .rangeVolume::-ms-thumb:hover {
-  box-shadow: rgba(255, 255, 255, 0.3) 0 0 1px 3px;
+	box-shadow: rgba(255, 255, 255, 0.3) 0 0 1px 3px;
 }
 
 /* ===== Seek Animations ===== */
 .seekLeft,
 .seekRight {
-  top: 50%;
-  font-size: 1.6rem;
-  position: absolute;
-  text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
-  transform: translateY(-50%);
+	top: 50%;
+	font-size: 1.6rem;
+	position: absolute;
+	text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+	transform: translateY(-50%);
 }
 
 .seekLeft {
-  left: 20%;
-  animation: shaking 200ms;
+	left: 20%;
+	animation: shaking 200ms;
 }
 
 .seekRight {
-  right: 20%;
-  animation: shaking 200ms;
+	right: 20%;
+	animation: shaking 200ms;
 }
 
 /* ===== Loading Container ===== */
 .loadingContainer {
-  top: 50%;
-  left: 50%;
-  width: 12%;
-  display: block;
-  position: absolute;
-  transform: translate(-50%, -50%);
+	top: 50%;
+	left: 50%;
+	width: 12%;
+	display: block;
+	position: absolute;
+	transform: translate(-50%, -50%);
 }
 
 .loadingContainer svg {
-  width: 100%;
-  color: white;
-  display: block;
+	width: 100%;
+	color: white;
+	display: block;
 }
 
 /* ===== Play First Container ===== */
 .playFirstContainer {
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  position: absolute;
-  align-items: center;
-  justify-content: center;
-  background-color: black;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	position: absolute;
+	align-items: center;
+	justify-content: center;
+	background-color: black;
 }
 
 /* ===== Center Play Button ===== */
 .btnCenterPlay {
-  border: 0;
-  margin: 0;
-  padding: 0.6em;
-  cursor: pointer;
-  position: relative;
-  background-color: transparent;
+	border: 0;
+	margin: 0;
+	padding: 0.6em;
+	cursor: pointer;
+	position: relative;
+	background-color: transparent;
 }
 
 /* ===== Error Message ===== */
 .errorMessage {
-  width: 200%;
-  left: -50%;
-  padding: 0.1em 0;
-  font-size: 1.4em;
-  text-align: center;
-  position: absolute;
-  color: white;
+	width: 200%;
+	left: -50%;
+	padding: 0.1em 0;
+	font-size: 1.4em;
+	text-align: center;
+	position: absolute;
+	color: white;
 }
 
 /* ===== Speed List ===== */
 .speedList {
-  gap: 1mm;
-  display: flex;
-  list-style: none;
-  padding-bottom: 1em;
-  flex-direction: column;
+	gap: 1mm;
+	display: flex;
+	list-style: none;
+	padding-bottom: 1em;
+	flex-direction: column;
 }
 
 .speedList li {
-  padding: .55em;
+	padding: 0.55em;
 }
 
 .speedBox {
-  transition: all 300ms;
-  padding-inline: 1em;
-  padding-block: .6em;
-  border-radius: .6em;
-  cursor: pointer;
-  display: flex;
-  gap: .6em
+	transition: all 300ms;
+	padding-inline: 1em;
+	padding-block: 0.6em;
+	border-radius: 0.6em;
+	cursor: pointer;
+	display: flex;
+	gap: 0.6em;
 }
 
 .speedMenu {
-  width: 1.3em;
-  height: 1.3em;
-  color: black;
-  appearance: none;
-  border-radius: 100%;
-  background-color: #eee;
+	width: 1.3em;
+	height: 1.3em;
+	color: black;
+	appearance: none;
+	border-radius: 100%;
+	background-color: #eee;
 }
 
 .speedMenu:checked {
-  outline: 1px #fff;
-  background-image: radial-gradient(white 34%, #00b3ff 34%)
+	outline: 1px #fff;
+	background-image: radial-gradient(white 34%, #00b3ff 34%);
 }
 
 .speedBox:hover {
-  color: white;
-  background-color: #00b2ff;
+	color: white;
+	background-color: #00b2ff;
 }
 
 /* ===== Keyframe Animations ===== */
 @keyframes shaking {
-  0% {
-    transform: translateY(-50%) scale(1);
-  }
-  50% {
-    transform: translateY(-50%) scale(2);
-  }
-  100% {
-    transform: translateY(-50%) scale(1);
-  }
+	0% {
+		transform: translateY(-50%) scale(1);
+	}
+	50% {
+		transform: translateY(-50%) scale(2);
+	}
+	100% {
+		transform: translateY(-50%) scale(1);
+	}
 }
 
 /* ===== Media Queries ===== */
 @media (max-width: 640px) {
-  .hideOnMobile {
-    display: none;
-  }
+	.hideOnMobile {
+		display: none;
+	}
 }
 
 @media (min-width: 640px) {
-  .rangeVolume {
-    width: 6em;
-  }
-  .seekLeft,
-  .seekRight {
-    font-size: 3rem;
-  }
+	.rangeVolume {
+		width: 6em;
+	}
+	.seekLeft,
+	.seekRight {
+		font-size: 3rem;
+	}
 }
