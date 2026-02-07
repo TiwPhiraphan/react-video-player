@@ -981,8 +981,11 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 								</div>
 								{uiState.activeSettingPanel === 'speed' && (
 									<ul className={style.speedList}>
-										{[0.5, 0.75, 1, 1.25, 1.5, 2, 4].map((speed) => (
-											<div key={speed} className={style.speedBox} onClick={() => setPlaybackSpeed(speed)}>
+										{[0.5, 0.75, 1, 1.25, 1.5, 4].map((speed) => (
+											<div key={speed} className={style.speedBox} onClick={() => {
+												setPlaybackSpeed(speed)
+												dispatchUI({ type: 'TOGGLE_SETTINGS' })
+											}}>
 												<input
 													type='checkbox'
 													checked={playbackState.playbackSpeed === speed}
