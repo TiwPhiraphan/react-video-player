@@ -432,6 +432,7 @@
 }
 
 .speedBox {
+  transition: all 300ms;
   padding-inline: 1em;
   padding-block: .6em;
   border-radius: .6em;
