@@ -8,7 +8,7 @@ const DOUBLE_TAP_THRESHOLD_MS = 300
 const CONTROL_HIDE_DELAY_MS = 2500
 const CONTROL_HIDE_DELAY_WHILE_RANGING_MS = 1000
 const MOUSE_MOVE_THROTTLE_MS = 200
-const SEEK_MODE_TIMEOUT_MS = 1500
+const SEEK_MODE_TIMEOUT_MS = 1000
 
 interface VideoPlayerProps {
 	title?: string
@@ -270,9 +270,9 @@ function uiReducer(state: UIState, action: UIAction): UIState {
 		case 'TOGGLE_SETTINGS':
 			return {
 				...state,
+				activeSettingPanel: state.isSettingsOpen ? null : 'speed',
 				isSettingsOpen: !state.isSettingsOpen,
-				isRanging: !state.isRanging,
-				activeSettingPanel: 'speed'
+				isRanging: !state.isRanging
 			}
 		case 'CLOSE_SETTINGS':
 			return { ...state, isSettingsOpen: false, activeSettingPanel: null, isRanging: false }
@@ -403,9 +403,7 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 				dispatchPlayback({ type: 'SET_SPEED', speed })
 			})
 			dispatchUI({ type: 'CLOSE_SETTINGS' })
-			if (playbackState.isPlaying) {
-				uiState.isControlVisible = false
-			}
+			hideControls()
 		},
 		[executeVideoOperation]
 	)
@@ -488,6 +486,7 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 	)
 
 	const hideControls = useCallback(() => {
+		if (isMobile) return void 0
 		dispatchUI({ type: 'HIDE_CONTROLS' })
 		if (controlHideTimerRef.current) {
 			clearTimeout(controlHideTimerRef.current)
@@ -496,14 +495,30 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 	}, [])
 
 	const handleMouseMove = useMemo(
-		() =>
+		() => {
+			if (isMobile) return void 0
 			createThrottle(() => {
 				if (playbackState.isPlaying) {
 					showControls()
 				}
-			}, MOUSE_MOVE_THROTTLE_MS),
+			}, MOUSE_MOVE_THROTTLE_MS)
+		},
 		[playbackState.isPlaying, showControls]
 	)
+
+	const handleTouchStart = () => {
+		
+		if (!isMobile) return void 0
+		if (uiState.isControlVisible) {
+			dispatchUI({ type: 'HIDE_CONTROLS' })
+			if (controlHideTimerRef.current) {
+				clearTimeout(controlHideTimerRef.current)
+				controlHideTimerRef.current = null
+			}
+		} else {
+			showControls()
+		}
+	}
 
 	const handleProgressBarHover = useCallback(
 		(e: React.MouseEvent<HTMLInputElement>) => {
@@ -715,7 +730,7 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 
 	return (
 		<div className={style.videoContainer} key={videoUrl}>
-			<div className={style.wrapper} ref={containerRef} onMouseMove={handleMouseMove} onMouseLeave={hideControls}>
+			<div className={style.wrapper} ref={containerRef} onTouchStart={handleTouchStart} onMouseMove={handleMouseMove} onMouseLeave={hideControls}>
 				<video
 					ref={videoRef}
 					playsInline
@@ -833,7 +848,10 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 						<div className={style.btnSetting}>
 							<button
 								type='button'
-								onClick={() => dispatchUI({ type: 'TOGGLE_SETTINGS' })}
+								onClick={() => {
+									if (uiState.isControlVisible) hideControls()
+									dispatchUI({ type: 'TOGGLE_SETTINGS' })
+								}}
 								aria-label='Settings'
 								onFocus={(e) => e.currentTarget.blur()}>
 								<Icon name='setting' />

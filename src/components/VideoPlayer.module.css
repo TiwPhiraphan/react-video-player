@@ -375,8 +375,10 @@
 	top: 50%;
 	left: 50%;
 	width: 12%;
-	display: block;
+	display: flex;
 	position: absolute;
+	align-items: center;
+	justify-content: center;
 	transform: translate(-50%, -50%);
 }
 
@@ -384,6 +386,8 @@
 	width: 100%;
 	color: white;
 	display: block;
+	min-width: 4.5rem;
+	max-width: 5.5rem;
 }
 
 /* ===== Play First Container ===== */
@@ -434,7 +438,7 @@
 }
 
 .speedBox {
-	transition: all 300ms;
+	transition: background-color 300ms;
 	padding-inline: 1em;
 	padding-block: 0.6em;
 	border-radius: 0.6em;
