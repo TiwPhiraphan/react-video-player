@@ -57,15 +57,19 @@ export default function App() {
 
 ---
 
-## 🧩 Props
+## Video Types
+```ts
+type VideoTypes = 'video/mp4' | 'video/ogg' | 'video/webm' |'application/vnd.apple.mpegurl' | 'application/x-mpegURL'
+```
 
+## 🧩 Props
 ### VideoPlayerProps
 
 | Prop | Type | Required | Description |
 |--------|------|----------|--------------|
 | `hls` | `boolean \| Partial<HlsConfig>` | ❌ | Using hls.js |
 | `title` | `string` | ❌ | Video title overlay |
-| `source` | `string \| { link: string; type?: 'video/mp4' \| 'video/ogg' \| 'video/webm' }` | ✅ | Video source |
+| `source` | `string \| { link: string; type?: VideoTypes }` | ✅ | Video source |
 
 ---
 

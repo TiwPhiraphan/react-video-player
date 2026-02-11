@@ -13,7 +13,7 @@ const SEEK_MODE_TIMEOUT_MS = 1000
 interface VideoPlayerProps {
 	title?: string
 	hls?: boolean | Partial<HlsConfig>
-	source: string | { link: string; type?: 'video/mp4' | 'video/ogg' | 'video/webm' }
+	source: string | { link: string; type?: 'video/mp4' | 'video/ogg' | 'video/webm' | 'application/vnd.apple.mpegurl' | 'application/x-mpegURL' }
 }
 
 type PlaybackState = {
@@ -313,6 +313,7 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 	const lastDoubleTapTimeRef = useRef(0)
 	const hlsInstanceRef = useRef<Hls | null>(null)
 	const isMobile = useRef(isMobileDevice())
+	const isNativeHls = () => (videoRef.current ? videoRef.current.canPlayType('application/vnd.apple.mpegurl') !== '' : false)
 	const [playbackState, dispatchPlayback] = useReducer(playbackReducer, {
 		isPlaying: false,
 		isEnded: false,
@@ -486,7 +487,6 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 	)
 
 	const hideControls = useCallback(() => {
-		if (isMobile) return void 0
 		dispatchUI({ type: 'HIDE_CONTROLS' })
 		if (controlHideTimerRef.current) {
 			clearTimeout(controlHideTimerRef.current)
@@ -494,21 +494,19 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 		}
 	}, [])
 
-	const handleMouseMove = useMemo(
-		() => {
-			if (isMobile) return void 0
+	const throttledMouseMove = useMemo(
+		() =>
 			createThrottle(() => {
-				if (playbackState.isPlaying) {
-					showControls()
-				}
-			}, MOUSE_MOVE_THROTTLE_MS)
-		},
+				if (playbackState.isPlaying) showControls()
+			}, MOUSE_MOVE_THROTTLE_MS),
 		[playbackState.isPlaying, showControls]
 	)
 
+	const handleMouseMove = useCallback(() => {
+		throttledMouseMove()
+	}, [throttledMouseMove])
+
 	const handleTouchStart = () => {
-		
-		if (!isMobile) return void 0
 		if (uiState.isControlVisible) {
 			dispatchUI({ type: 'HIDE_CONTROLS' })
 			if (controlHideTimerRef.current) {
@@ -587,7 +585,7 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 		dispatchUI({ type: 'SET_SEEK_MODE', isActive: false })
 		dispatchUI({ type: 'SET_RANGING', isRanging: false })
 		dispatchUI({ type: 'CLOSE_SETTINGS' })
-		if (hls && Hls.isSupported() && videoRef.current) {
+		if (hls && Hls.isSupported() && videoRef.current && !isNativeHls()) {
 			const hlsInstance = new Hls(typeof hls === 'boolean' ? undefined : hls)
 			hlsInstanceRef.current = hlsInstance
 			hlsInstance.loadSource(videoUrl)
@@ -730,7 +728,12 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 
 	return (
 		<div className={style.videoContainer} key={videoUrl}>
-			<div className={style.wrapper} ref={containerRef} onTouchStart={handleTouchStart} onMouseMove={handleMouseMove} onMouseLeave={hideControls}>
+			<div
+				className={style.wrapper}
+				ref={containerRef}
+				onTouchStart={isMobile.current ? handleTouchStart : undefined}
+				onMouseMove={isMobile.current ? undefined : handleMouseMove}
+				onMouseLeave={isMobile.current ? undefined : hideControls}>
 				<video
 					ref={videoRef}
 					playsInline
@@ -750,7 +753,7 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 					onEnded={() => dispatchPlayback({ type: 'END' })}
 					onPlay={() => dispatchPlayback({ type: 'PLAY' })}
 					onPause={() => dispatchPlayback({ type: 'PAUSE' })}>
-					<source src={hls ? undefined : videoUrl} type={videoMimeType} />
+					{(!hls || isNativeHls()) && <source src={videoUrl} type={videoMimeType} />}
 				</video>
 				<div className={`${style.controller} ${controlVisibilityClass}`}>
 					<h1 className={style.title}>
