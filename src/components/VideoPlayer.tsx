@@ -471,7 +471,7 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 
 	const showControls = useCallback(
 		(hideDelayMs = CONTROL_HIDE_DELAY_MS) => {
-			if (!playbackState.isPlaying) return
+			if (!playbackState.isPlaying && !uiState.isRanging) return
 			if (controlHideTimerRef.current) {
 				clearTimeout(controlHideTimerRef.current)
 			}
@@ -493,6 +493,8 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 			controlHideTimerRef.current = null
 		}
 	}, [])
+
+	const hideControlsAfter = (ms = 0) => setTimeout(hideControls, ms)
 
 	const throttledMouseMove = useMemo(
 		() =>
@@ -652,12 +654,6 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 	}, [playbackState.playbackSpeed, executeVideoOperation])
 
 	useEffect(() => {
-		if (uiState.isRanging) {
-			showControls(CONTROL_HIDE_DELAY_WHILE_RANGING_MS)
-		}
-	}, [uiState.isRanging, showControls])
-
-	useEffect(() => {
 		const handleFullscreenChange = async () => {
 			if (containerRef.current && videoRef.current) {
 				const isCurrentlyFullscreen = document.fullscreenElement === containerRef.current
@@ -785,12 +781,29 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 									className={style.rangeTime}
 									aria-label='Video progress'
 									onFocus={(e) => e.currentTarget.blur()}
-									onPointerDown={() => {
+									onTouchMove={!isMobile.current ? undefined : (e) => {
+										e.stopPropagation()
+										isDraggingRef.current = true
+										dispatchUI({ type: 'SET_RANGING', isRanging: true })
+										dispatchUI({ type: 'SHOW_CONTROLS' })
+									}}
+									onPointerDown={isMobile.current ? undefined : () => {
 										isDraggingRef.current = false
 										dispatchUI({ type: 'SET_RANGING', isRanging: true })
 									}}
-									onPointerUp={() => dispatchUI({ type: 'SET_RANGING', isRanging: false })}
-									onPointerCancel={() => {
+									onTouchEnd={!isMobile.current ? undefined : (e) => {
+										e.stopPropagation()
+										dispatchUI({ type: 'SET_RANGING', isRanging: false })
+										hideControlsAfter(400)
+									}}
+									onPointerUp={isMobile.current ? undefined : () => dispatchUI({ type: 'SET_RANGING', isRanging: false })}
+									onTouchCancel={!isMobile.current ? undefined : (e) => {
+										e.stopPropagation()
+										isDraggingRef.current = false
+										dispatchUI({ type: 'SET_RANGING', isRanging: false })
+										hideControlsAfter(400)
+									}}
+									onPointerCancel={isMobile.current ? undefined : () => {
 										isDraggingRef.current = false
 										dispatchUI({ type: 'SET_RANGING', isRanging: false })
 									}}
