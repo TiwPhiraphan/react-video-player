@@ -494,8 +494,6 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 		}
 	}, [])
 
-	const hideControlsAfter = (ms = 0) => setTimeout(hideControls, ms)
-
 	const throttledMouseMove = useMemo(
 		() =>
 			createThrottle(() => {
@@ -510,11 +508,7 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 
 	const handleTouchStart = () => {
 		if (uiState.isControlVisible) {
-			dispatchUI({ type: 'HIDE_CONTROLS' })
-			if (controlHideTimerRef.current) {
-				clearTimeout(controlHideTimerRef.current)
-				controlHideTimerRef.current = null
-			}
+			hideControls()
 		} else {
 			showControls()
 		}
@@ -534,6 +528,7 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 
 	const handleProgressBarClick = useCallback(
 		(e: React.MouseEvent<HTMLInputElement>) => {
+			e.stopPropagation()
 			if (isDraggingRef.current) {
 				isDraggingRef.current = false
 				return
@@ -646,6 +641,10 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 			}
 		}
 	}, [videoUrl, hls])
+
+	useEffect(() => {
+		showControls(CONTROL_HIDE_DELAY_WHILE_RANGING_MS)
+	}, [uiState.isRanging])
 
 	useEffect(() => {
 		executeVideoOperation((video) => {
@@ -787,29 +786,34 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 										dispatchUI({ type: 'SET_RANGING', isRanging: true })
 										dispatchUI({ type: 'SHOW_CONTROLS' })
 									}}
-									onPointerDown={isMobile.current ? undefined : () => {
+									onPointerDown={isMobile.current ? undefined : (e) => {
+										e.stopPropagation()
 										isDraggingRef.current = false
 										dispatchUI({ type: 'SET_RANGING', isRanging: true })
 									}}
 									onTouchEnd={!isMobile.current ? undefined : (e) => {
 										e.stopPropagation()
 										dispatchUI({ type: 'SET_RANGING', isRanging: false })
-										hideControlsAfter(400)
 									}}
-									onPointerUp={isMobile.current ? undefined : () => dispatchUI({ type: 'SET_RANGING', isRanging: false })}
+									onPointerUp={isMobile.current ? undefined : (e) => {
+										e.stopPropagation()
+										dispatchUI({ type: 'SET_RANGING', isRanging: false })
+									}}
 									onTouchCancel={!isMobile.current ? undefined : (e) => {
 										e.stopPropagation()
 										isDraggingRef.current = false
 										dispatchUI({ type: 'SET_RANGING', isRanging: false })
-										hideControlsAfter(400)
 									}}
-									onPointerCancel={isMobile.current ? undefined : () => {
+									onPointerCancel={isMobile.current ? undefined : (e) => {
+										e.stopPropagation()
 										isDraggingRef.current = false
 										dispatchUI({ type: 'SET_RANGING', isRanging: false })
 									}}
 									onChange={(e) => {
+										e.stopPropagation()
 										isDraggingRef.current = true
 										setCurrentTime(+e.currentTarget.value)
+										showControls()
 									}}
 									onMouseMove={handleProgressBarHover}
 									onClick={handleProgressBarClick}
@@ -838,6 +842,19 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 								aria-label='Volume'
 								onFocus={(e) => e.currentTarget.blur()}
 								onChange={(e) => setVolume(+e.currentTarget.value)}
+								onTouchMove={!isMobile.current ? undefined : (e) => {
+									e.stopPropagation()
+									dispatchUI({ type: 'SET_RANGING', isRanging: true })
+									dispatchUI({ type: 'SHOW_CONTROLS' })
+								}}
+								onTouchEnd={!isMobile.current ? undefined : (e) => {
+									e.stopPropagation()
+									dispatchUI({ type: 'SET_RANGING', isRanging: false })
+								}}
+								onTouchCancel={!isMobile.current ? undefined : (e) => {
+									e.stopPropagation()
+									dispatchUI({ type: 'SET_RANGING', isRanging: false })
+								}}
 								style={{
 									backgroundImage: `linear-gradient(to right, #00b2ff ${!playbackState.isMuted ? playbackState.volume * 100 : 0}%, #fff5 ${!playbackState.isMuted ? playbackState.volume * 100 : 0}%)`
 								}}
