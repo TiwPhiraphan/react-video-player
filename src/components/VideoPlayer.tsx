@@ -10,10 +10,16 @@ const CONTROL_HIDE_DELAY_WHILE_RANGING_MS = 1000
 const MOUSE_MOVE_THROTTLE_MS = 200
 const SEEK_MODE_TIMEOUT_MS = 1000
 
+interface VideoPlayerSource {
+	link: string
+	quality?: string
+	type?: 'video/mp4' | 'video/ogg' | 'video/webm' | 'application/vnd.apple.mpegurl' | 'application/x-mpegURL'
+}
+
 interface VideoPlayerProps {
 	title?: string
 	hls?: boolean | Partial<HlsConfig>
-	source: string | { link: string; type?: 'video/mp4' | 'video/ogg' | 'video/webm' | 'application/vnd.apple.mpegurl' | 'application/x-mpegURL' }
+	source: string | Omit<VideoPlayerSource, 'quality'> // | VideoPlayerSource[]
 }
 
 type PlaybackState = {
@@ -270,9 +276,9 @@ function uiReducer(state: UIState, action: UIAction): UIState {
 		case 'TOGGLE_SETTINGS':
 			return {
 				...state,
-				activeSettingPanel: state.isSettingsOpen ? null : 'speed',
 				isSettingsOpen: !state.isSettingsOpen,
-				isRanging: !state.isRanging
+				isRanging: state.isSettingsOpen ? false : true,
+				activeSettingPanel: state.isSettingsOpen ? null : 'speed'
 			}
 		case 'CLOSE_SETTINGS':
 			return { ...state, isSettingsOpen: false, activeSettingPanel: null, isRanging: false }
@@ -369,6 +375,7 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 	const toggleMute = useCallback(() => {
 		executeVideoOperation((video) => {
 			video.muted = !video.muted
+			showControls()
 			dispatchPlayback({ type: 'MUTE', isMuted: video.muted })
 		})
 	}, [executeVideoOperation])
@@ -724,7 +731,7 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 	return (
 		<div className={style.videoContainer} key={videoUrl}>
 			<div
-				className={style.wrapper}
+				className={style.wrapper + (isMobile.current ? ` ${style.isMobile}` : '')}
 				ref={containerRef}
 				onTouchStart={isMobile.current ? handleTouchStart : undefined}
 				onMouseMove={isMobile.current ? undefined : handleMouseMove}
@@ -841,7 +848,10 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 								className={style.rangeVolume + (isMobile.current ? ` ${style.hideOnMobile}` : '')}
 								aria-label='Volume'
 								onFocus={(e) => e.currentTarget.blur()}
-								onChange={(e) => setVolume(+e.currentTarget.value)}
+								onChange={(e) => {
+									showControls()
+									setVolume(+e.currentTarget.value)
+								}}
 								onTouchMove={!isMobile.current ? undefined : (e) => {
 									e.stopPropagation()
 									dispatchUI({ type: 'SET_RANGING', isRanging: true })
@@ -881,10 +891,7 @@ export default function VideoPlayer({ source, title, hls }: VideoPlayerProps) {
 						<div className={style.btnSetting}>
 							<button
 								type='button'
-								onClick={() => {
-									if (uiState.isControlVisible) hideControls()
-									dispatchUI({ type: 'TOGGLE_SETTINGS' })
-								}}
+								onClick={() => dispatchUI({ type: 'TOGGLE_SETTINGS' })}
 								aria-label='Settings'
 								onFocus={(e) => e.currentTarget.blur()}>
 								<Icon name='setting' />
