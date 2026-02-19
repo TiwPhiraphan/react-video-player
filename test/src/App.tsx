@@ -1,10 +1,12 @@
-import { VideoPlayer } from '../../src'
+import { VideoPlayer } from '@tiwz/react-video-player'
+import '@tiwz/react-video-player/model.css'
 
 function App() {
 
 	return (
 		<div style={{ width: '760px', maxWidth: '100%' }}>
-			<VideoPlayer source={[
+			<VideoPlayer hls source='https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8' />
+			{/* <VideoPlayer source={[
 				{
 					src: './Big Buck Bunny 720p.mp4',
 					quality: 720
@@ -25,7 +27,7 @@ function App() {
 					src: './Big Buck Bunny 144p.mp4',
 					quality: 144
 				},
-			]} />
+			]} /> */}
 		</div>
 	)
 }
