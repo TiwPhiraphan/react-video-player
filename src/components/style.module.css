@@ -1,0 +1,434 @@
+@font-face {
+	font-family: "BasePlayer";
+	src: url("../fonts/Kodchasan.ttf") format("truetype");
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+.PlayerButton {
+	border: 0px;
+	width: 30px;
+	height: 30px;
+	display: flex;
+	appearance: none;
+	border-radius: 5px;
+	align-items: center;
+	background: transparent;
+	justify-content: center;
+	transition: background-color 200ms;
+}
+
+.PlayerDesktop .PlayerButton:hover {
+	cursor: pointer;
+	background-color: #00b2ff;
+}
+
+.PlayerWrapper,
+.PlayerWrapper *,
+.PlayerWrapper *::before,
+.PlayerWrapper *::after {
+	color: #fff;
+	margin: 0px;
+	padding: 0px;
+	font-weight: 400;
+	font-style: normal;
+	box-sizing: border-box;
+	font-optical-sizing: auto;
+	font-family: BasePlayer, sans-serif;
+	font-variation-settings:
+		"wdth" 100,
+		"YTLC" 500;
+}
+
+.PlayerWrapper {
+	width: 100%;
+	cursor: none;
+	display: flex;
+	user-select: none;
+	position: relative;
+	align-items: center;
+	aspect-ratio: 16 / 9;
+	background-color: #000;
+	justify-content: center;
+}
+
+.PlayerVideo {
+	width: 100%;
+	height: 100%;
+	max-width: 100%;
+	max-height: 100%;
+}
+
+.PlayerControls {
+	top: 0;
+	left: 0;
+	opacity: 0;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	position: absolute;
+	visibility: hidden;
+	flex-direction: column;
+	background-color: #0000;
+	transition: background-color 400ms ease;
+}
+
+.PlayerControls.PlayerShown {
+	opacity: 1;
+	cursor: default;
+	visibility: visible;
+	background-color: #0006;
+}
+
+.PlayerPanelTop {
+	height: 50px;
+	display: flex;
+	align-items: center;
+	padding-inline: 14px;
+}
+
+.PlayerTitle {
+	flex: 1;
+	font-size: 12pt;
+	overflow-x: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.PlayerPanelCenter {
+	flex: 1;
+	display: flex;
+}
+
+.PlayerSeekArea {
+	flex: 1;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.PlayerPanelBottom {
+	gap: 10px;
+	height: 50px;
+	display: flex;
+	position: relative;
+	align-items: center;
+	padding-inline: 14px;
+}
+
+.PlayerCurrentTime,
+.PlayerDurationTime {
+	font-size: 13pt;
+	padding-inline: 4px;
+	font-family: monospace;
+}
+
+.PlayerVolume {
+	gap: 6px;
+	display: flex;
+	padding-right: 5px;
+	align-items: center;
+}
+
+.PlayerVolumeZone {
+	width: 70px;
+	height: 4px;
+	display: flex;
+	position: relative;
+	align-items: center;
+}
+
+.PlayerRangeVolume {
+	width: 100%;
+	height: 4px;
+	appearance: none;
+}
+
+.PlayerSeekTime {
+	flex: 1;
+	height: 4px;
+	position: relative;
+}
+
+.PlayerHoverTime {
+	top: -34px;
+	color: #000;
+	font-size: 10pt;
+	padding: 2px 8px;
+	position: absolute;
+	border-radius: 99px;
+	font-family: monospace;
+	background-color: #fff;
+	transform: translateX(-50%);
+	left: var(--player-hover-position);
+}
+
+.PlayerHoverTime::before {
+	top: 99%;
+	width: 0;
+	height: 0;
+	left: 50%;
+	content: "";
+	position: absolute;
+	transform: translateX(-50%);
+	border-top: 4px solid #fff;
+	border-left: 4px solid transparent;
+	border-right: 4px solid transparent;
+}
+
+.PlayerRangeTime,
+.PlayerRangeVolume {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	cursor: pointer;
+	appearance: none;
+	border-radius: 4px;
+	align-items: center;
+	background-color: transparent;
+	background-image: linear-gradient(
+		to right,
+		#00b2ff var(--player-time-position),
+		#fffa var(--player-time-position),
+		#fffa var(--player-buffer-position),
+		#fff6 var(--player-buffer-position)
+	);
+}
+
+.PlayerRangeTime::-webkit-slider-thumb,
+.PlayerRangeVolume::-webkit-slider-thumb {
+	width: 0px;
+	height: 0px;
+	border: 0px;
+	appearance: none;
+}
+.PlayerRangeTime::-moz-range-thumb,
+.PlayerRangeVolume::-moz-range-thumb {
+	width: 0px;
+	height: 0px;
+	border: 0px;
+	appearance: none;
+}
+.PlayerRangeTime::-ms-thumb,
+.PlayerRangeVolume::-ms-thumb {
+	width: 0px;
+	height: 0px;
+	border: 0px;
+	appearance: none;
+}
+
+.PlayerRangeThumb {
+	top: -4px;
+	width: 12px;
+	height: 12px;
+	position: absolute;
+	border-radius: 11px;
+	pointer-events: none;
+	background-color: #fff;
+	left: var(--player-thumb-position);
+	transform: translateX(-50%);
+	transition: box-shadow 200ms;
+}
+
+.PlayerRangeTime:hover + .PlayerRangeThumb,
+.PlayerRangeVolume:hover + .PlayerRangeThumb {
+	box-shadow: rgba(255, 255, 255, 0.28) 0 0 1px 3px;
+}
+
+.PlayerLoading,
+.PlayerCenter {
+	top: 50%;
+	left: 50%;
+	width: 60px;
+	height: 60px;
+	padding: 2px;
+	cursor: pointer;
+	position: absolute;
+	transform: translate(-50%, -50%);
+}
+
+.PlayerLoading {
+	width: 80px;
+	height: 80px;
+}
+
+.PlayerSetting {
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	cursor: default;
+	position: absolute;
+	background-color: #0006;
+}
+
+.PlayerSettingPanel,
+.PlayerSettingPanelSpeed,
+.PlayerSettingPanelQuality {
+	gap: 4px;
+	left: 50%;
+	width: 240px;
+	bottom: 20px;
+	display: flex;
+	max-width: 80%;
+	padding: 10px 4px;
+	position: absolute;
+	border-radius: 10px;
+	flex-direction: column;
+	background-color: white;
+	transform: translateX(-50%);
+}
+
+.PlayerSettingPanel *,
+.PlayerSettingPanelSpeed *,
+.PlayerSettingPanelQuality * {
+	color: #000;
+}
+
+.PlayerSettingPanelQuality {
+	max-height: calc(100% - 40px);
+}
+
+.PlayerSettingList {
+	gap: 8px;
+	display: flex;
+	font-size: 14pt;
+	cursor: pointer;
+	padding: 6px 14px;
+	border-radius: 8px;
+	align-items: center;
+}
+
+.PlayerSettingDisplay {
+	flex: 1;
+	display: flex;
+	justify-content: space-between;
+}
+
+.PlayerButtonCursor {
+	border: 0px;
+	width: 30px;
+	height: 30px;
+	display: flex;
+	cursor: pointer;
+	appearance: none;
+	background: #eee;
+	align-items: center;
+	border-radius: 55px;
+	justify-content: center;
+}
+
+.PlayerSpeedShow {
+	width: 100%;
+	font-size: 14pt;
+	text-align: center;
+	padding-block: 4px;
+}
+
+.PlayerPlayback {
+	gap: 8px;
+	display: flex;
+	align-items: center;
+	padding-inline: 8px;
+}
+
+.PlayerRangeSpeed {
+	flex: 1;
+	height: 4px;
+	appearance: none;
+	border-radius: 4px;
+	background-image: linear-gradient(
+		to right,
+		#000 var(--spped-thumb-position),
+		#0006 var(--spped-thumb-position)
+	);
+}
+
+.PlayerRangeSpeed::-webkit-slider-thumb {
+	appearance: none;
+	background-color: #000;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	cursor: pointer;
+}
+
+.PlayerRangeSpeed::-moz-range-thumb {
+	background-color: #000;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	border: none;
+	cursor: pointer;
+}
+
+.PlayerRangeSpeed::-ms-thumb {
+	background-color: #000;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	cursor: pointer;
+}
+
+.PlayerCheckbox {
+	width: 14px;
+	height: 14px;
+	appearance: none;
+	border-radius: 14px;
+	background-color: #eee;
+}
+
+.PlayerCheckbox:checked {
+	background-image: radial-gradient(circle at center, #fff 34%, #00b2ff 34%);
+}
+
+.PlayerQualityList {
+	gap: 4px;
+	display: flex;
+	font-size: 12pt;
+	overflow-y: auto;
+	padding-inline: 10px;
+	flex-direction: column;
+}
+
+.PlayerSettingList:hover {
+	background-color: #eee6;
+}
+
+.seekLeft,
+.seekRight {
+	top: 50%;
+	font-size: 24pt;
+	position: absolute;
+	animation: shaking 200ms;
+	transform: translateY(-50%);
+	text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes shaking {
+	0% {
+		transform: translateY(-50%) scale(1);
+	}
+	50% {
+		transform: translateY(-50%) scale(2);
+	}
+	100% {
+		transform: translateY(-50%) scale(1);
+	}
+}
+
+@media (max-width: 460px) {
+	.PlayerVolumeZone,
+	.PlayerDurationTime {
+		display: none;
+	}
+	.PlayerVolume {
+		padding-right: 0px;
+	}
+	.seekLeft,
+	.seekRight {
+		font-size: 18pt;
+	}
+}

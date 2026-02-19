@@ -1,0 +1,1164 @@
+
+==================================================
+File: src/components/types.ts
+==================================================
+export type VideoSourceQuality = {
+	src: string
+	quality: number
+}
+
+export type VideoPlayerProps = {
+	title?: string
+	poster?: string
+	source: string | VideoSourceQuality[]
+}
+
+export type PlaybackState = {
+	volume: number
+	isPaused: boolean
+	currentTime: number
+	durationTime: number
+	playbackSpeed: number
+}
+
+export type PlaybackAction =
+	| { type: 'SET_VOLUME'; volume: number }
+	| { type: 'SET_PAUSED'; isPaused: boolean }
+	| { type: 'SET_DURATION'; duration: number }
+	| { type: 'SET_CURRENT_TIME'; time: number }
+	| { type: 'SET_PLAYBACK_SPEED'; speed: number }
+
+export type UIState = {
+	isMuted: boolean
+	isFullscreen: boolean
+	isSettingsVisible: boolean
+	isControlsVisible: boolean
+	settingPanel: 'speed' | 'quality' | null
+	hoverTime: { x: number | null; time: number }
+}
+
+export type UIAction =
+	| { type: 'SET_SETTING_PANEL'; name: UIState['settingPanel'] }
+	| { type: 'SET_HOVER_TIME'; x: number | null; time: number }
+	| { type: 'SET_CONTROLS_VISIBLE'; visible: boolean }
+	| { type: 'SET_FULLSCREEN'; active: boolean }
+	| { type: 'SET_SETTING'; active: boolean }
+	| { type: 'SET_MUTED'; muted: boolean }
+
+==================================================
+File: src/components/reducer.ts
+==================================================
+import type { PlaybackAction, PlaybackState, UIAction, UIState } from './types'
+
+export function playbackReducer(state: PlaybackState, action: PlaybackAction): PlaybackState {
+	switch (action.type) {
+		case 'SET_VOLUME':
+			return { ...state, volume: action.volume }
+		case 'SET_PAUSED':
+			return { ...state, isPaused: action.isPaused }
+		case 'SET_DURATION':
+			return { ...state, durationTime: action.duration }
+		case 'SET_CURRENT_TIME':
+			return { ...state, currentTime: action.time }
+		case 'SET_PLAYBACK_SPEED':
+			return { ...state, playbackSpeed: action.speed }
+		default:
+			return state
+	}
+}
+
+export function UIReducer(state: UIState, action: UIAction) {
+	switch (action.type) {
+		case 'SET_CONTROLS_VISIBLE':
+			return { ...state, isControlsVisible: action.visible }
+		case 'SET_SETTING_PANEL':
+			return { ...state, settingPanel: action.name }
+		case 'SET_HOVER_TIME':
+			return { ...state, hoverTime: { x: action.x, time: action.time } }
+		case 'SET_FULLSCREEN':
+			return { ...state, isFullscreen: action.active }
+		case 'SET_SETTING':
+			return { ...state, isSettingsVisible: action.active }
+		case 'SET_MUTED':
+			return { ...state, isMuted: action.muted }
+		default:
+			return state
+	}
+}
+
+==================================================
+File: src/components/utils.ts
+==================================================
+export function formatTime(seconds?: number): string {
+	if (seconds === undefined || Number.isNaN(seconds) || seconds < 0) return '00:00'
+	const totalSeconds = Math.floor(seconds)
+	const minutes = Math.floor(totalSeconds / 60)
+	const secs = totalSeconds % 60
+	return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+}
+
+export function formatQuality(quality: number) {
+	if (quality === 0) return 'Auto'
+	return quality < 1000 ? `${quality}p` : `${quality / 1000}k`
+}
+
+export const isMobileDevice = (): boolean => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobi/i.test(navigator.userAgent)
+
+export function createThrottle<T extends (...args: unknown[]) => void>(func: T, delayMs: number): (...args: Parameters<T>) => void {
+	let timeoutId: NodeJS.Timeout | null = null
+	let lastExecutionTime = 0
+	return function (this: unknown, ...args: Parameters<T>) {
+		const now = Date.now()
+		if (!lastExecutionTime) {
+			func.apply(this, args)
+			lastExecutionTime = now
+		} else {
+			if (timeoutId) clearTimeout(timeoutId)
+			timeoutId = setTimeout(
+				() => {
+					if (now - lastExecutionTime >= delayMs) {
+						func.apply(this, args)
+						lastExecutionTime = now
+					}
+				},
+				delayMs - (now - lastExecutionTime)
+			)
+		}
+	}
+}
+
+export async function requestFullscreen(element: HTMLDivElement): Promise<boolean> {
+	interface FullscreenElement {
+		requestFullscreen?: () => Promise<void>
+		webkitRequestFullscreen?: () => Promise<void>
+		webkitEnterFullscreen?: () => Promise<void>
+		mozRequestFullScreen?: () => Promise<void>
+		msRequestFullscreen?: () => Promise<void>
+	}
+	const el = element as FullscreenElement
+	const requestMethod =
+		el.requestFullscreen || el.webkitRequestFullscreen || el.webkitEnterFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen
+	if (requestMethod) {
+		try {
+			await requestMethod.call(el)
+			return true
+		} catch (error) {
+			console.error('Failed to enter fullscreen:', error)
+			return false
+		}
+	}
+	return false
+}
+
+export async function exitFullscreen(): Promise<boolean> {
+	interface ExitFullscreenElement {
+		exitFullscreen?: () => Promise<void>
+		webkitExitFullscreen?: () => Promise<void>
+		mozCancelFullScreen?: () => Promise<void>
+		msExitFullscreen?: () => Promise<void>
+	}
+	const doc = document as ExitFullscreenElement
+	const exitMethod = doc.exitFullscreen || doc.webkitExitFullscreen || doc.mozCancelFullScreen || doc.msExitFullscreen
+	if (exitMethod) {
+		try {
+			await exitMethod.call(doc)
+			return true
+		} catch (error) {
+			console.error('Failed to exit fullscreen:', error)
+			return false
+		}
+	}
+	return false
+}
+
+export function isFullscreenSupported(): boolean {
+	interface FullScreenSupport {
+		fullscreenEnabled?: boolean
+		webkitFullscreenEnabled?: boolean
+		mozFullScreenEnabled?: boolean
+		msFullscreenEnabled?: boolean
+	}
+	const doc = document as FullScreenSupport
+	return !!(doc.fullscreenEnabled || doc.webkitFullscreenEnabled || doc.mozFullScreenEnabled || doc.msFullscreenEnabled)
+}
+
+export async function requestPictureInPicture(video: HTMLVideoElement): Promise<PictureInPictureWindow | null> {
+	if (!('pictureInPictureEnabled' in document) || typeof video.requestPictureInPicture !== 'function') {
+		console.error('Picture-in-Picture is not supported')
+		return null
+	}
+	try {
+		if (video.paused) {
+			await video.play().catch(() => {
+				console.warn('Auto-play was prevented')
+			})
+		}
+		return await video.requestPictureInPicture()
+	} catch (error) {
+		console.error('Failed to enter Picture-in-Picture:', error)
+		return null
+	}
+}
+
+export async function exitPictureInPicture(video: HTMLVideoElement): Promise<boolean> {
+	if (video.disablePictureInPicture === false && 'pictureInPictureElement' in document && document.pictureInPictureElement) {
+		try {
+			await document.exitPictureInPicture()
+			return true
+		} catch (error) {
+			console.error('Failed to exit Picture-in-Picture:', error)
+			return false
+		}
+	}
+	return false
+}
+
+export function isPictureInPictureSupported(): boolean {
+	return 'pictureInPictureEnabled' in document && 'requestPictureInPicture' in HTMLVideoElement.prototype
+}
+
+export async function lockOrientation(video: HTMLVideoElement, isFullscreen: boolean): Promise<void> {
+	const isLandscape = video.videoWidth > video.videoHeight
+	if (
+		typeof window !== 'undefined' &&
+		window.screen &&
+		'orientation' in window.screen &&
+		window.screen.orientation &&
+		'lock' in window.screen.orientation &&
+		typeof window.screen.orientation.lock === 'function'
+	) {
+		try {
+			if (isFullscreen && isLandscape) await window.screen.orientation.lock('landscape')
+			else window.screen.orientation.unlock()
+		} catch (error) {
+			console.warn('Failed to lock orientation:', error)
+		}
+	}
+}
+
+==================================================
+File: src/components/VideoPlayer.tsx
+==================================================
+import type { ChangeEvent, CSSProperties, MouseEvent, SyntheticEvent } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { playbackReducer, UIReducer } from './reducer'
+import SvgIcon from './SvgIcon'
+import style from './style.module.css'
+import type { VideoPlayerProps } from './types'
+import {
+	createThrottle,
+	exitFullscreen,
+	exitPictureInPicture,
+	formatQuality,
+	formatTime,
+	isFullscreenSupported,
+	isMobileDevice,
+	isPictureInPictureSupported,
+	lockOrientation,
+	requestFullscreen,
+	requestPictureInPicture
+} from './utils'
+
+export function VideoPlayer({ title, poster, source }: VideoPlayerProps) {
+	const resumeTimeRef = useRef(0)
+	const wrapperRef = useRef<HTMLDivElement>(null)
+	const videoRef = useRef<HTMLVideoElement>(null)
+	const controlHideTimerRef = useRef<NodeJS.Timeout | null>(null)
+	const videoSourcesRef = useRef(typeof source === 'string' ? [{ src: source, quality: 0 }] : [...source].sort((a,b) => b.quality - a.quality))
+
+	const [playbackState, dispatchPlayback] = useReducer(playbackReducer, {
+		volume: 1,
+		isPaused: true,
+		currentTime: 0,
+		durationTime: 0,
+		playbackSpeed: 1
+	})
+
+	const [uiState, dispatchUI] = useReducer(UIReducer, {
+		isMuted: false,
+		settingPanel: null,
+		isFullscreen: false,
+		isControlsVisible: true,
+		isSettingsVisible: false,
+		hoverTime: { x: null, time: 0 }
+	})
+
+	const [quality, setQuality] = useState(0)
+
+	const withVideo = useCallback(async <T,>(operation: (video: HTMLVideoElement) => Promise<T> | T): Promise<T | null> => {
+		if (videoRef.current) {
+			try {
+				return await operation(videoRef.current)
+			} catch (error) {
+				console.error('Video operation failed:', error)
+				return null
+			}
+		}
+		return null
+	}, [])
+
+	const handleTimeUpdate = useCallback(
+		(event: SyntheticEvent<HTMLVideoElement>) => {
+			if (!uiState.isControlsVisible) return
+			const newTime = event.currentTarget.currentTime
+			const timeDifference = Math.abs(newTime - playbackState.currentTime)
+			if (timeDifference > 1 || Math.floor(newTime) !== Math.floor(playbackState.currentTime)) {
+				dispatchPlayback({ type: 'SET_CURRENT_TIME', time: newTime })
+			}
+		},
+		[playbackState.currentTime, uiState.isControlsVisible]
+	)
+
+	const handleTogglePlayPause = useCallback(() => {
+		withVideo(async (video) => {
+			if (video.paused) {
+				await video.play()
+			} else {
+				video.pause()
+			}
+		})
+	}, [withVideo])
+
+	const handleToggleFullscreen = useCallback(async () => {
+		if (!isFullscreenSupported() || !wrapperRef.current) return
+		if (document.fullscreenElement) {
+			await exitFullscreen()
+		} else {
+			await requestFullscreen(wrapperRef.current)
+		}
+	}, [])
+
+	const handleToggleMute = useCallback(() => {
+		withVideo((video) => {
+			if (!video.muted && video.volume === 0) {
+				video.volume = 1
+				video.muted = false
+				dispatchUI({ type: 'SET_MUTED', muted: false })
+			} else {
+				video.muted = !video.muted
+				dispatchUI({ type: 'SET_MUTED', muted: video.muted })
+			}
+		})
+	}, [])
+
+	const handleTogglePIP = useCallback(async () => {
+		withVideo(async (video) => {
+			if (!isPictureInPictureSupported()) return
+			if (document.pictureInPictureElement === video) await exitPictureInPicture(video)
+			else await requestPictureInPicture(video)
+		})
+	}, [])
+
+	const showControls = useCallback((hideDelayMs = 2500) => {
+		if (controlHideTimerRef.current) {
+			clearTimeout(controlHideTimerRef.current)
+		}
+		dispatchUI({ type: 'SET_CONTROLS_VISIBLE', visible: true })
+		controlHideTimerRef.current = setTimeout(hideControls, hideDelayMs)
+	}, [])
+
+	const seekToTime = useCallback(
+		(time: number) => {
+			if (!uiState.isControlsVisible) return
+			withVideo((video) => {
+				video.currentTime = time
+				dispatchPlayback({ type: 'SET_CURRENT_TIME', time })
+				showControls()
+			})
+		},
+		[withVideo, uiState.isControlsVisible, showControls]
+	)
+
+	const hideControls = useCallback(() => {
+		dispatchUI({ type: 'SET_CONTROLS_VISIBLE', visible: false })
+		if (controlHideTimerRef.current) {
+			clearTimeout(controlHideTimerRef.current)
+			controlHideTimerRef.current = null
+		}
+	}, [])
+
+	const throttledMouseMove = useMemo(
+		() =>
+			createThrottle(() => {
+				showControls()
+			}, 200),
+		[showControls]
+	)
+
+	const handleMouseMove = useCallback(() => {
+		throttledMouseMove()
+	}, [throttledMouseMove])
+
+	const handleMouseLeave = useCallback(() => {
+		hideControls()
+	}, [hideControls])
+
+	const handleProgressBarHover = useCallback(
+		(e: MouseEvent<HTMLInputElement>) => {
+			const target = e.currentTarget
+			const rect = target.getBoundingClientRect()
+			const x = e.clientX - rect.left
+			const percentage = Math.min(Math.max(x / rect.width, 0), 1)
+			const time = percentage * playbackState.durationTime
+			dispatchUI({ type: 'SET_HOVER_TIME', x, time })
+		},
+		[playbackState.durationTime]
+	)
+
+	const handleProgressBarBlur = useCallback(() => {
+		dispatchUI({ type: 'SET_HOVER_TIME', x: null, time: 0 })
+	}, [])
+
+	const handleVolumeChange = useCallback((e: ChangeEvent<HTMLVideoElement>) => {
+		dispatchPlayback({ type: 'SET_VOLUME', volume: e.currentTarget.volume })
+	}, [])
+
+	const handleSeekVolume = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+		withVideo((video) => {
+			video.volume = +e.currentTarget.value
+		})
+	}, [])
+
+	const handleQualityChange = useCallback((quality: number) => {
+		withVideo((video) => {
+			resumeTimeRef.current = video.currentTime
+			const index = videoSourcesRef.current.findIndex(s => s.quality === quality)
+			if (index < 0) return
+			setQuality(index)
+		})
+	}, [withVideo])
+
+	useEffect(() => {
+		const video = videoRef.current
+		if (!video || resumeTimeRef.current === 0) return
+		const loaded = () => {
+			video.currentTime = resumeTimeRef.current
+			video.play()
+		}
+		video.addEventListener('loadedmetadata', loaded, { once: true })
+		return () => video.removeEventListener('loadedmetadata', loaded)
+	}, [quality])
+
+	const handlePlaybackSpeed = useCallback(
+		(e: ChangeEvent<HTMLVideoElement>) => {
+			dispatchPlayback({ type: 'SET_PLAYBACK_SPEED', speed: e.currentTarget.playbackRate })
+		}, []
+	)
+
+	const handlePlaybackSpeedChange = useCallback((speed: number) => {
+		withVideo(video => {
+			video.playbackRate = speed
+		})
+	}, [])
+
+	const handleToggleSetting = useCallback(() => {
+		dispatchUI({ type: 'SET_SETTING', active: !uiState.isSettingsVisible })
+	}, [uiState.isSettingsVisible])
+
+	const bufferedPercentage = useMemo(() => {
+		if (!videoRef.current || !playbackState.durationTime) return 0
+		const buffered = videoRef.current.buffered
+		if (buffered.length === 0) return 0
+		let bufferedEnd = 0
+		for (let i = 0; i < buffered.length; i++) {
+			if (buffered.start(i) <= playbackState.currentTime && buffered.end(i) > playbackState.currentTime) {
+				bufferedEnd = buffered.end(i)
+				break
+			}
+		}
+		return (bufferedEnd / playbackState.durationTime) * 100
+	}, [playbackState.currentTime, playbackState.durationTime])
+
+	const videoPercentage = useMemo(() => {
+		if (!playbackState.durationTime) return 0
+		return (playbackState.currentTime / playbackState.durationTime) * 100
+	}, [playbackState.currentTime, playbackState.durationTime])
+
+	const isControlsShown = uiState.isControlsVisible || playbackState.isPaused
+
+	useEffect(() => {
+		const handleFullScreenState = async () => {
+			const isFullscreen = document.fullscreenElement === wrapperRef.current
+			dispatchUI({ type: 'SET_FULLSCREEN', active: isFullscreen })
+			if (videoRef.current) {
+				void lockOrientation(videoRef.current, isFullscreen)
+			}
+		}
+		document.addEventListener('fullscreenchange', handleFullScreenState)
+		return () => {
+			document.removeEventListener('fullscreenchange', handleFullScreenState)
+			if (controlHideTimerRef.current) {
+				clearTimeout(controlHideTimerRef.current)
+			}
+		}
+	}, [])
+
+	return (
+		<div
+			ref={wrapperRef}
+			onMouseMove={handleMouseMove}
+			onMouseLeave={handleMouseLeave}
+			className={style.PlayerWrapper + (!isMobileDevice() ? ` ${style.PlayerDesktop}` : '')}>
+			<video
+				ref={videoRef}
+				poster={poster}
+				controls={false}
+				onContextMenu={() => false}
+				className={style.PlayerVideo}
+				src={videoSourcesRef.current[quality].src}
+				onTimeUpdate={handleTimeUpdate}
+				onVolumeChange={handleVolumeChange}
+				onRateChange={handlePlaybackSpeed}
+				onPlay={() => dispatchPlayback({ type: 'SET_PAUSED', isPaused: false })}
+				onPause={() => dispatchPlayback({ type: 'SET_PAUSED', isPaused: true })}
+				onDurationChange={(e) => dispatchPlayback({ type: 'SET_DURATION', duration: e.currentTarget.duration })}
+				onLoadedMetadata={(e) => dispatchPlayback({ type: 'SET_DURATION', duration: e.currentTarget.duration })}
+			/>
+			<div className={style.PlayerControls + (isControlsShown ? ` ${style.PlayerShown}` : '')}>
+				<div className={style.PlayerPanelTop}>
+					<article className={style.PlayerTitle}>{title}</article>
+					<button type='button' className={style.PlayerButton} onClick={handleToggleSetting}>
+						<SvgIcon name='setting' />
+					</button>
+				</div>
+				<div className={style.PlayerPanelCenter}>
+					<div className={style.PlayerSeekArea}></div>
+					<div className={style.PlayerSeekArea}></div>
+				</div>
+				<div className={style.PlayerPanelBottom}>
+					<div className={style.PlayerCurrentTime}>{formatTime(playbackState.currentTime)}</div>
+					<div className={style.PlayerSeekTime}>
+						<div
+							className={style.PlayerHoverTime}
+							style={
+								{
+									display: uiState.hoverTime.x === null ? 'none' : undefined,
+									'--player-hover-position': `${uiState.hoverTime.x}px`
+								} as CSSProperties
+							}>
+							{formatTime(uiState.hoverTime.time)}
+						</div>
+						<input
+							step='any'
+							type='range'
+							max={playbackState.durationTime}
+							value={playbackState.currentTime}
+							className={style.PlayerRangeTime}
+							onMouseMove={handleProgressBarHover}
+							onMouseLeave={handleProgressBarBlur}
+							onChange={(e) => seekToTime(+e.currentTarget.value)}
+							style={
+								{
+									'--player-buffer-position': `${bufferedPercentage}%`,
+									'--player-time-position': `${videoPercentage}%`
+								} as CSSProperties
+							}
+						/>
+						<div className={style.PlayerRangeThumb} style={{ '--player-thumb-position': `${videoPercentage}%` } as CSSProperties} />
+					</div>
+					<div className={style.PlayerDurationTime}>{formatTime(playbackState.durationTime)}</div>
+					<div className={style.PlayerVolume}>
+						<button type='button' className={style.PlayerButton} onClick={handleToggleMute}>
+							<SvgIcon name={uiState.isMuted || playbackState.volume === 0 ? 'unmute' : 'mute'} />
+						</button>
+						<div className={style.PlayerVolumeZone}>
+							<input
+								style={
+									{
+										'--player-buffer-position': `${playbackState.volume * 100}%`,
+										'--player-time-position': `${playbackState.volume * 100}%`
+									} as CSSProperties
+								}
+								onChange={handleSeekVolume}
+								className={style.PlayerRangeVolume}
+								value={uiState.isMuted ? 0 : playbackState.volume}
+								type='range'
+								step='any'
+								max={1}
+							/>
+							<div
+								className={style.PlayerRangeThumb}
+								style={{ '--player-thumb-position': `${playbackState.volume * 100}%` } as CSSProperties}
+							/>
+						</div>
+					</div>
+					<button type='button' className={style.PlayerButton} onClick={handleTogglePIP}>
+						<SvgIcon name='picture-in-picture' />
+					</button>
+					<button type='button' className={style.PlayerButton} onClick={handleToggleFullscreen}>
+						<SvgIcon name={uiState.isFullscreen ? 'exit-fullscreen' : 'fullscreen'} />
+					</button>
+				</div>
+				<div className={style.PlayerCenter} onClick={handleTogglePlayPause}>
+					<SvgIcon name={playbackState.isPaused ? 'play' : 'pause'} bigger />
+				</div>
+			</div>
+			<div
+				className={style.PlayerSetting}
+				style={{ display: !uiState.isSettingsVisible ? 'none' : undefined }}
+				onClick={() => {
+					dispatchUI({ type: 'SET_SETTING', active: false })
+					dispatchUI({ type: 'SET_SETTING_PANEL', name: null })
+				}}
+				onMouseMove={(e) => e.stopPropagation()}
+			>
+				<div className={style.PlayerSettingPanel} onClick={(e) => e.stopPropagation()} style={{ display: uiState.settingPanel === null ? undefined : 'none' }}>
+					<div className={style.PlayerSettingList}>
+						<SvgIcon name='quality' style={{ stroke: '#000' }} />
+						<div className={style.PlayerSettingDisplay} onClick={() => dispatchUI({ type: 'SET_SETTING_PANEL', name: 'quality'})}>
+							<span>Video quality</span>
+							<span>{formatQuality(videoSourcesRef.current[quality].quality)}</span>
+						</div>
+					</div>
+					<div className={style.PlayerSettingList}>
+						<SvgIcon name='playback' style={{ stroke: '#000' }} />
+						<div className={style.PlayerSettingDisplay} onClick={() => dispatchUI({ type: 'SET_SETTING_PANEL', name: 'speed'})}>
+							<span>Playback speed</span>
+							<span>{playbackState.playbackSpeed}x</span>
+						</div>
+					</div>
+				</div>
+				<div className={style.PlayerSettingPanelSpeed} onClick={(e) => e.stopPropagation()} style={{ display: uiState.settingPanel === 'speed' ? undefined : 'none' }}>
+					<div className={style.PlayerSpeedShow}>Speed {playbackState.playbackSpeed}x</div>
+					<div className={style.PlayerPlayback}>
+						<button type='button' className={style.PlayerButtonCursor} onClick={() => handlePlaybackSpeedChange(playbackState.playbackSpeed === 0.25 ? 0.25 : playbackState.playbackSpeed - 0.25)}>
+							<SvgIcon name='minus' />
+						</button>
+						<input
+							max={4}
+							min={0.25}
+							step={0.25}
+							type='range'
+							style={{
+								'--spped-thumb-position': `${((playbackState.playbackSpeed - 0.25) / 3.75) * 100}%`
+							} as CSSProperties}
+							className={style.PlayerRangeSpeed}
+							onChange={(e) => handlePlaybackSpeedChange(+e.currentTarget.value)}
+							value={playbackState.playbackSpeed}
+						/>
+						<button type='button' className={style.PlayerButtonCursor} onClick={() => handlePlaybackSpeedChange(playbackState.playbackSpeed === 4 ? 4 : playbackState.playbackSpeed + 0.25)}>
+							<SvgIcon name='plus' />
+						</button>
+					</div>
+				</div>
+				<div className={style.PlayerSettingPanelQuality} onClick={(e) => e.stopPropagation()} style={{ display: uiState.settingPanel === 'quality' ? undefined : 'none' }}>
+					<div className={style.PlayerSpeedShow}>Quality {formatQuality(videoSourcesRef.current[quality].quality)}</div>
+					<div className={style.PlayerQualityList}>
+						{videoSourcesRef.current.map(source => (
+							<div key={source.quality} className={style.PlayerSettingList} onClick={() => {
+								handleQualityChange(source.quality)
+								dispatchUI({ type: 'SET_SETTING', active: false })
+								dispatchUI({ type: 'SET_SETTING_PANEL', name: null })
+							}}>
+								<input type='checkbox' readOnly className={style.PlayerCheckbox} checked={videoSourcesRef.current[quality].quality === source.quality} />
+								{formatQuality(source.quality)}
+							</div>
+						))}
+					</div>
+				</div>
+			</div>
+		</div>
+	)
+}
+
+==================================================
+File: src/components/SvgIcon.tsx
+==================================================
+type SvgIconProps = {
+	name: 'play' | 'pause' | 'mute' | 'plus' | 'minus' | 'unmute' | 'setting' | 'quality' | 'playback' | 'fullscreen' | 'exit-fullscreen' | 'picture-in-picture'
+	style?: React.CSSProperties
+	bigger?: boolean
+}
+
+const fullFill = ['play', 'pause']
+
+export default function SvgIcon({ name, style, bigger }: SvgIconProps) {
+	return (
+		<svg
+			fill={fullFill.includes(name) ? 'currentColor' : 'none'}
+			strokeWidth={1.5}
+			width={bigger ? 56 : 24}
+			viewBox='0 0 24 24'
+			stroke='currentColor'
+			style={style}
+			xmlns='http://www.w3.org/2000/svg'>
+			<title>{name}</title>
+			{name === 'play' && (
+				<path
+					fillRule='evenodd'
+					d='M4.5 5.653c0-1.427 1.529-2.33 2.779-1.643l11.54 6.347c1.295.712 1.295 2.573 0 3.286L7.28 19.99c-1.25.687-2.779-.217-2.779-1.643V5.653Z'
+					clipRule='evenodd'
+				/>
+			)}
+			{name === 'pause' && (
+				<path
+					fillRule='evenodd'
+					d='M6.75 5.25a.75.75 0 0 1 .75-.75H9a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75H7.5a.75.75 0 0 1-.75-.75V5.25Zm7.5 0A.75.75 0 0 1 15 4.5h1.5a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75H15a.75.75 0 0 1-.75-.75V5.25Z'
+					clipRule='evenodd'
+				/>
+			)}
+			{name === 'setting' && (
+				<>
+					<path
+						strokeLinecap='round'
+						strokeLinejoin='round'
+						d='M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z'
+					/>
+					<path strokeLinecap='round' strokeLinejoin='round' d='M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z' />
+				</>
+			)}
+			{name === 'fullscreen' && (
+				<path
+					strokeLinecap='round'
+					strokeLinejoin='round'
+					d='M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15'
+				/>
+			)}
+			{name === 'exit-fullscreen' && (
+				<path
+					strokeLinecap='round'
+					strokeLinejoin='round'
+					d='M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25'
+				/>
+			)}
+			{name === 'mute' && (
+				<path
+					strokeLinecap='round'
+					strokeLinejoin='round'
+					d='M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z'
+				/>
+			)}
+			{name === 'unmute' && (
+				<path
+					strokeLinecap='round'
+					strokeLinejoin='round'
+					d='M17.25 9.75 19.5 12m0 0 2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6 4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z'
+				/>
+			)}
+			{name === 'picture-in-picture' && (
+				<path
+					strokeLinecap='round'
+					strokeLinejoin='round'
+					d='M16.5 8.25V6a2.25 2.25 0 0 0-2.25-2.25H6A2.25 2.25 0 0 0 3.75 6v8.25A2.25 2.25 0 0 0 6 16.5h2.25m8.25-8.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-7.5A2.25 2.25 0 0 1 8.25 18v-1.5m8.25-8.25h-6a2.25 2.25 0 0 0-2.25 2.25v6'
+				/>
+			)}
+			{name === 'quality' && (
+				<path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+			)}
+			{name === 'playback' && (
+				<>
+					<path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+					<path strokeLinecap="round" strokeLinejoin="round" d="M15.91 11.672a.375.375 0 0 1 0 .656l-5.603 3.113a.375.375 0 0 1-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112Z" />
+				</>
+			)}
+			{name === 'plus' && (
+				<path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+			)}
+			{name === 'minus' && (
+				<path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14" />
+			)}
+		</svg>
+	)
+}
+
+==================================================
+File: src/components/style.module.css
+==================================================
+@font-face {
+	font-family: 'BasePlayer';
+	src: url('../fonts/Kodchasan.ttf') format('truetype');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+.PlayerButton {
+	border: 0px;
+	width: 30px;
+	height: 30px;
+	display: flex;
+	appearance: none;
+	border-radius: 5px;
+	align-items: center;
+	background: transparent;
+	justify-content: center;
+	transition: background-color 200ms;
+}
+
+.PlayerDesktop .PlayerButton:hover {
+	cursor: pointer;
+	background-color: #00b2ff;
+}
+
+.PlayerWrapper,
+.PlayerWrapper *,
+.PlayerWrapper *::before,
+.PlayerWrapper *::after {
+	color: #fff;
+	margin: 0px;
+	padding: 0px;
+	font-weight: 400;
+	font-style: normal;
+	box-sizing: border-box;
+	font-optical-sizing: auto;
+	font-family: BasePlayer, sans-serif;
+	font-variation-settings: "wdth" 100, "YTLC" 500;
+}
+
+.PlayerWrapper {
+	cursor: none;
+	display: flex;
+	user-select: none;
+	position: relative;
+	align-items: center;
+	aspect-ratio: 16 / 9;
+	background-color: #000;
+	justify-content: center;
+}
+
+.PlayerVideo {
+	width: 100%;
+	height: 100%;
+	max-width: 100%;
+	max-height: 100%;
+}
+
+.PlayerControls {
+	top: 0;
+	left: 0;
+	opacity: 0;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	position: absolute;
+	visibility: hidden;
+	flex-direction: column;
+	background-color: #0000;
+	transition: background-color 1s ease;
+}
+
+.PlayerControls.PlayerShown {
+	opacity: 1;
+	cursor: default;
+	visibility: visible;
+	background-color: #0006;
+}
+
+.PlayerPanelTop {
+	height: 50px;
+	display: flex;
+	align-items: center;
+	padding-inline: 14px;
+}
+
+.PlayerTitle {
+	flex: 1;
+	font-size: 12pt;
+	overflow-x: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.PlayerPanelCenter {
+	flex: 1;
+	display: flex;
+}
+
+.PlayerSeekArea {
+	flex: 1;
+	height: 100%;
+}
+
+.PlayerPanelBottom {
+	gap: 10px;
+	height: 50px;
+	display: flex;
+	position: relative;
+	align-items: center;
+	padding-inline: 14px
+}
+
+.PlayerCurrentTime,
+.PlayerDurationTime {
+	font-size: 13pt;
+	padding-inline: 4px;
+	font-family: monospace
+}
+
+.PlayerVolume {
+	gap: 6px;
+	display: flex;
+	padding-right: 5px;
+	align-items: center;
+}
+
+.PlayerVolumeZone {
+	width: 70px;
+	height: 4px;
+	display: flex;
+	position: relative;
+	align-items: center;
+}
+
+.PlayerRangeVolume {
+	width: 100%;
+	height: 4px;
+	appearance: none;
+}
+
+.PlayerSeekTime {
+	flex: 1;
+	height: 4px;
+	position: relative;
+}
+
+.PlayerHoverTime {
+	top: -34px;
+	color: #000;
+	font-size: 10pt;
+	padding: 2px 8px;
+	position: absolute;
+	border-radius: 99px;
+	font-family: monospace;
+	background-color: #fff;
+	transform: translateX(-50%);
+	left: var(--player-hover-position);
+}
+
+.PlayerHoverTime::before {
+	top: 99%;
+	width: 0;
+	height: 0;
+	left: 50%;
+	content: "";
+	position: absolute;
+	transform: translateX(-50%);
+	border-top: 4px solid #fff;
+	border-left: 4px solid transparent;
+	border-right: 4px solid transparent;
+}
+
+.PlayerRangeTime,
+.PlayerRangeVolume {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	cursor: pointer;
+	appearance: none;
+	border-radius: 4px;
+	align-items: center;
+	background-color: transparent;
+	background-image: linear-gradient(
+		to right,
+		#00b2ff var(--player-time-position),
+		#fffa var(--player-time-position),
+		#fffa var(--player-buffer-position),
+		#fff6 var(--player-buffer-position)
+	);
+}
+
+.PlayerRangeTime::-webkit-slider-thumb,
+.PlayerRangeVolume::-webkit-slider-thumb {
+	width: 0px;
+	height: 0px;
+	border: 0px;
+	appearance: none;
+}
+.PlayerRangeTime::-moz-range-thumb,
+.PlayerRangeVolume::-moz-range-thumb {
+	width: 0px;
+	height: 0px;
+	border: 0px;
+	appearance: none;
+}
+.PlayerRangeTime::-ms-thumb,
+.PlayerRangeVolume::-ms-thumb {
+	width: 0px;
+	height: 0px;
+	border: 0px;
+	appearance: none;
+}
+
+.PlayerRangeThumb {
+	top: -4px;
+	width: 12px;
+	height: 12px;
+	position: absolute;
+	border-radius: 11px;
+	pointer-events: none;
+	background-color: #fff;
+	left: var(--player-thumb-position);
+	transform: translateX(-50%);
+	transition: box-shadow 200ms;
+}
+
+.PlayerRangeTime:hover + .PlayerRangeThumb,
+.PlayerRangeVolume:hover + .PlayerRangeThumb {
+	box-shadow: rgba(255, 255, 255, 0.28) 0 0 1px 3px;
+}
+
+.PlayerCenter {
+	top: 50%;
+	left: 50%;
+	width: 60px;
+	height: 60px;
+	padding: 2px;
+	cursor: pointer;
+	position: absolute;
+	transform: translate(-50%, -50%);
+}
+
+.PlayerSetting {
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	cursor: default;
+	position: absolute;
+	background-color: #0006;
+}
+
+.PlayerSettingPanel,
+.PlayerSettingPanelSpeed,
+.PlayerSettingPanelQuality {
+	gap: 4px;
+	left: 50%;
+	width: 240px;
+	bottom: 20px;
+	display: flex;
+	max-width: 80%;
+	padding: 10px 4px;
+	position: absolute;
+	border-radius: 10px;
+	flex-direction: column;
+	background-color: white;
+	transform: translateX(-50%);
+}
+
+.PlayerSettingPanel *,
+.PlayerSettingPanelSpeed *,
+.PlayerSettingPanelQuality * {
+	color: #000;
+}
+
+.PlayerSettingPanelQuality {
+	max-height: calc(100% - 40px);
+}
+
+.PlayerSettingList {
+	gap: 8px;
+	display: flex;
+	font-size: 14pt;
+	cursor: pointer;
+	padding: 6px 14px;
+	border-radius: 8px;
+	align-items: center;
+}
+
+.PlayerSettingDisplay {
+	flex: 1;
+	display: flex;
+	justify-content: space-between
+}
+
+.PlayerButtonCursor {
+	border: 0px;
+	width: 30px;
+	height: 30px;
+	display: flex;
+	cursor: pointer;
+	appearance: none;
+	background: #eee;
+	align-items: center;
+	border-radius: 55px;
+	justify-content: center;
+}
+
+.PlayerSpeedShow {
+	width: 100%;
+	font-size: 14pt;
+	text-align: center;
+	padding-block: 4px;
+}
+
+.PlayerPlayback {
+	gap: 8px;
+	display: flex;
+	align-items: center;
+	padding-inline: 8px;
+}
+
+.PlayerRangeSpeed {
+	flex: 1;
+	height: 4px;
+	appearance: none;
+	border-radius: 4px;
+	background-image: linear-gradient(to right, #000 var(--spped-thumb-position), #0006 var(--spped-thumb-position));
+}
+
+.PlayerRangeSpeed::-webkit-slider-thumb {
+	appearance: none;
+	background-color: #000;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	cursor: pointer;
+}
+
+.PlayerRangeSpeed::-moz-range-thumb {
+	background-color: #000;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	border: none;
+	cursor: pointer;
+}
+
+.PlayerRangeSpeed::-ms-thumb {
+	background-color: #000;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	cursor: pointer;
+}
+
+.PlayerCheckbox {
+	width: 14px;
+	height: 14px;
+	appearance: none;
+	border-radius: 14px;
+	background-color: #eee;
+}
+
+.PlayerCheckbox:checked {
+	background-image: radial-gradient(circle at center, #fff 34%, #00b2ff 34%);
+}
+
+.PlayerQualityList {
+	gap: 4px;
+	display: flex;
+	font-size: 12pt;
+	overflow-y: auto;
+	padding-inline: 10px;
+	flex-direction: column;
+}
+
+.PlayerSettingList:hover {
+	background-color: #eee6;
+}
+
+@media (max-width: 460px) {
+	.PlayerVolumeZone,
+	.PlayerDurationTime {
+		display: none;
+	}
+	.PlayerVolume {
+		padding-right: 0px;
+	}
+}
+
+==================================================
+File: src/index.ts
+==================================================
+export type { VideoSourceQuality } from './components/types'
+export { VideoPlayer } from './components/VideoPlayer'
