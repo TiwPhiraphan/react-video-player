@@ -1,6 +1,6 @@
 @font-face {
-	font-family: "BasePlayer";
-	src: url("../fonts/Kodchasan.ttf") format("truetype");
+	font-family: "ReactVideoPlayerFontFamily";
+	src: url("../fonts/Kodchasan.woff2") format("woff2");
 	font-weight: 400;
 	font-style: normal;
 	font-display: swap;
@@ -35,7 +35,7 @@
 	font-style: normal;
 	box-sizing: border-box;
 	font-optical-sizing: auto;
-	font-family: BasePlayer, sans-serif;
+	font-family: "ReactVideoPlayerFontFamily", sans-serif;
 	font-variation-settings:
 		"wdth" 100,
 		"YTLC" 500;
@@ -405,6 +405,21 @@
 	animation: shaking 200ms;
 	transform: translateY(-50%);
 	text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+}
+
+.PlayerError {
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	font-size: 16pt;
+	cursor: default;
+	position: absolute;
+	align-items: center;
+	flex-direction: column;
+	background-color: #000;
+	justify-content: center;
 }
 
 @keyframes shaking {

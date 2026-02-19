@@ -4,6 +4,7 @@ type SvgIconProps = {
 		| 'pause'
 		| 'mute'
 		| 'plus'
+		| 'error'
 		| 'minus'
 		| 'unmute'
 		| 'setting'
@@ -203,6 +204,9 @@ export default function SvgIcon({ name, style, bigger }: SvgIconProps) {
 							d='M15.91 11.672a.375.375 0 0 1 0 .656l-5.603 3.113a.375.375 0 0 1-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112Z'
 						/>
 					</>
+				)}
+				{name === 'error' && (
+					<path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
 				)}
 				{name === 'plus' && <path strokeLinecap='round' strokeLinejoin='round' d='M12 4.5v15m7.5-7.5h-15' />}
 				{name === 'minus' && <path strokeLinecap='round' strokeLinejoin='round' d='M5 12h14' />}

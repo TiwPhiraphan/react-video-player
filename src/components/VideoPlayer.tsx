@@ -18,12 +18,13 @@ import {
 	requestPictureInPicture
 } from './utils'
 
-export function VideoPlayer({ title, poster, source }: VideoPlayerProps) {
+export function VideoPlayer({ title, poster, source, hls }: VideoPlayerProps) {
 	const resumeTimeRef = useRef(0)
 	const wrapperRef = useRef<HTMLDivElement>(null)
 	const videoRef = useRef<HTMLVideoElement>(null)
 	const controlHideTimerRef = useRef<NodeJS.Timeout | null>(null)
 	const videoSourcesRef = useRef(typeof source === 'string' ? [{ src: source, quality: 0 }] : [...source].sort((a, b) => b.quality - a.quality))
+	const hlsRef = useRef<import('hls.js').default | null>(null)
 	const isMobile = useMemo(() => isMobileDevice(), [])
 
 	const [playbackState, dispatchPlayback] = useReducer(playbackReducer, {
@@ -37,6 +38,7 @@ export function VideoPlayer({ title, poster, source }: VideoPlayerProps) {
 	const [uiState, dispatchUI] = useReducer(UIReducer, {
 		seekStack: 0,
 		isMuted: false,
+		isError: false,
 		isLoading: true,
 		isSeekMode: false,
 		settingPanel: null,
@@ -47,6 +49,42 @@ export function VideoPlayer({ title, poster, source }: VideoPlayerProps) {
 	})
 
 	const [quality, setQuality] = useState(0)
+
+	useEffect(() => {
+		const video = videoRef.current
+		if (!video || !hls) return
+		const src = videoSourcesRef.current[quality].src
+		import('hls.js').then(({ default: Hls }) => {
+			if (!Hls.isSupported()) {
+				if (video.canPlayType('application/vnd.apple.mpegurl')) video.src = src
+				return
+			}
+			hlsRef.current?.destroy()
+			const instance = new Hls(typeof hls === 'object' ? hls : {})
+			hlsRef.current = instance
+			instance.loadSource(src)
+			instance.attachMedia(video)
+			instance.on(Hls.Events.ERROR, (_, data) => {
+				if (!data.fatal) return
+				switch (data.type) {
+					case Hls.ErrorTypes.NETWORK_ERROR:
+					case Hls.ErrorTypes.MEDIA_ERROR:
+						dispatchUI({ type: 'SET_ERROR', error: true })
+						break
+				}
+			})
+			instance.on(Hls.Events.MANIFEST_PARSED, () => {
+				if (resumeTimeRef.current > 0) {
+					video.currentTime = resumeTimeRef.current
+					video.play()
+				}
+			})
+		}).catch(() => {
+			console.warn('hls.js not installed: npm install hls.js')
+			video.src = src
+		})
+		return () => { hlsRef.current?.destroy(); hlsRef.current = null }
+	}, [quality, hls])
 
 	const withVideo = useCallback(async <T,>(operation: (video: HTMLVideoElement) => Promise<T> | T): Promise<T | null> => {
 		if (videoRef.current) {
@@ -176,6 +214,19 @@ export function VideoPlayer({ title, poster, source }: VideoPlayerProps) {
 		[playbackState.durationTime]
 	)
 
+	const handleProgressBarTouchMove = useCallback(
+		(e: React.TouchEvent<HTMLInputElement>) => {
+			const target = e.currentTarget
+			const rect = target.getBoundingClientRect()
+			const x = e.touches[0].clientX - rect.left
+			const percentage = Math.min(Math.max(x / rect.width, 0), 1)
+			const time = percentage * playbackState.durationTime
+			dispatchUI({ type: 'SET_HOVER_TIME', x, time })
+			seekToTime(time)
+		},
+		[playbackState.durationTime, seekToTime]
+	)
+
 	const handleProgressBarBlur = useCallback(() => {
 		dispatchUI({ type: 'SET_HOVER_TIME', x: null, time: 0 })
 	}, [])
@@ -278,6 +329,7 @@ export function VideoPlayer({ title, poster, source }: VideoPlayerProps) {
 	)
 
 	const lastDoubleTapTimeRef = useRef(0)
+	const singleTapTimerRef = useRef<NodeJS.Timeout | null>(null)
 
 	const handleDoubleTapSeek = useCallback(
 		(direction: '-' | '+') => {
@@ -287,21 +339,31 @@ export function VideoPlayer({ title, poster, source }: VideoPlayerProps) {
 			const isDoubleTap = timeSinceLastTap > 0 && timeSinceLastTap < 300
 			const shouldSeek = isDoubleTap || uiState.isSeekMode
 			if (shouldSeek) {
+				if (singleTapTimerRef.current) {
+					clearTimeout(singleTapTimerRef.current)
+					singleTapTimerRef.current = null
+				}
 				if (!uiState.isSeekMode) {
 					dispatchUI({ type: 'SET_SEEK_MODE', isActive: true })
 				}
 				seekVideo(direction)
+			} else {
+				singleTapTimerRef.current = setTimeout(() => {
+					if (uiState.isControlsVisible) hideControls()
+					else showControls()
+					singleTapTimerRef.current = null
+				}, 300)
 			}
 			lastDoubleTapTimeRef.current = now
 		},
-		[uiState.isSeekMode, seekVideo]
+		[isMobile, uiState.isSeekMode, uiState.isControlsVisible, seekVideo, showControls, hideControls]
 	)
 
 	const handleTouchEnd = useCallback(
 		(e: React.TouchEvent<HTMLDivElement>) => {
 			if (!isMobile) return
 			const target = e.target as HTMLElement
-			const isInteractive = target.closest('button, input, [data-no-toggle]')
+			const isInteractive = target.closest('button, input, [data-no-toggle=true]')
 			if (isInteractive) return showControls()
 			if (uiState.isControlsVisible) hideControls()
 			else showControls()
@@ -363,9 +425,9 @@ export function VideoPlayer({ title, poster, source }: VideoPlayerProps) {
 	return (
 		<div
 			ref={wrapperRef}
-			onMouseMove={!isMobile ? handleMouseMove : undefined}
-			onMouseLeave={!isMobile ? handleMouseLeave : undefined}
-			onTouchEnd={isMobile ? handleTouchEnd : undefined}
+			onMouseMove={!isMobile && !uiState.isError ? handleMouseMove : undefined}
+			onMouseLeave={!isMobile && !uiState.isError ? handleMouseLeave : undefined}
+			onTouchEnd={isMobile && !uiState.isError ? handleTouchEnd : undefined}
 			className={style.PlayerWrapper + (!isMobile ? ` ${style.PlayerDesktop}` : '')}>
 			<video
 				ref={videoRef}
@@ -373,11 +435,12 @@ export function VideoPlayer({ title, poster, source }: VideoPlayerProps) {
 				controls={false}
 				onContextMenu={() => false}
 				className={style.PlayerVideo}
-				src={videoSourcesRef.current[quality].src}
+				src={!hls ? videoSourcesRef.current[quality].src : undefined}
 				onWaiting={() => handleVideoLoading(true)}
 				onPlaying={() => handleVideoLoading(false)}
 				onCanPlay={() => handleVideoLoading(false)}
 				onLoadedData={() => handleVideoLoading(false)}
+				onError={() => dispatchUI({ type: 'SET_ERROR', error: true })}
 				onTimeUpdate={handleTimeUpdate}
 				onVolumeChange={handleVolumeChange}
 				onRateChange={handlePlaybackSpeed}
@@ -386,7 +449,7 @@ export function VideoPlayer({ title, poster, source }: VideoPlayerProps) {
 				onDurationChange={(e) => dispatchPlayback({ type: 'SET_DURATION', duration: e.currentTarget.duration })}
 				onLoadedMetadata={(e) => dispatchPlayback({ type: 'SET_DURATION', duration: e.currentTarget.duration })}
 			/>
-			<div className={style.PlayerControls + (isControlsShown ? ` ${style.PlayerShown}` : '')}>
+			<div className={style.PlayerControls + (isControlsShown && !uiState.isError ? ` ${style.PlayerShown}` : '')}>
 				<div className={style.PlayerPanelTop}>
 					<article className={style.PlayerTitle}>{title}</article>
 					<button
@@ -436,8 +499,11 @@ export function VideoPlayer({ title, poster, source }: VideoPlayerProps) {
 							max={playbackState.durationTime}
 							value={playbackState.currentTime}
 							className={style.PlayerRangeTime}
-							onMouseMove={handleProgressBarHover}
-							onMouseLeave={handleProgressBarBlur}
+							onMouseMove={!isMobile ? handleProgressBarHover : undefined}
+							onMouseLeave={!isMobile ? handleProgressBarBlur : undefined}
+							onTouchMove={isMobile ? handleProgressBarTouchMove : undefined}
+							onTouchEnd={isMobile ? handleProgressBarBlur : undefined}
+							onTouchCancel={isMobile ? handleProgressBarBlur : undefined}
 							onChange={(e) => seekToTime(+e.currentTarget.value)}
 							style={
 								{
@@ -607,6 +673,12 @@ export function VideoPlayer({ title, poster, source }: VideoPlayerProps) {
 					</div>
 				</div>
 			</div>
+			{uiState.isError && (
+				<div className={style.PlayerError}>
+					<SvgIcon name='error' style={{ width: '80px' }} />
+					<span>Unable to play video</span>
+				</div>
+			)}
 		</div>
 	)
 }

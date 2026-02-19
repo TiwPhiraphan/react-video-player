@@ -33,6 +33,8 @@ export function UIReducer(state: UIState, action: UIAction) {
 			return { ...state, isSettingsVisible: action.active }
 		case 'SET_MUTED':
 			return { ...state, isMuted: action.muted }
+		case 'SET_ERROR':
+			return { ...state, isError: action.error, isLoading: false }
 		case 'ADD_SEEK':
 			return {
 				...state,

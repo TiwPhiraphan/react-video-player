@@ -1,3 +1,5 @@
+import type { HlsConfig } from 'hls.js'
+
 export type VideoSourceQuality = {
 	src: string
 	quality: number
@@ -6,6 +8,7 @@ export type VideoSourceQuality = {
 export type VideoPlayerProps = {
 	title?: string
 	poster?: string
+	hls?: boolean | Partial<HlsConfig>
 	source: string | VideoSourceQuality[]
 }
 
@@ -26,6 +29,7 @@ export type PlaybackAction =
 
 export type UIState = {
 	isMuted: boolean
+	isError: boolean
 	seekStack: number
 	isLoading: boolean
 	isSeekMode: boolean
@@ -44,6 +48,7 @@ export type UIAction =
 	| { type: 'SET_FULLSCREEN'; active: boolean }
 	| { type: 'SET_LOADING'; loading: boolean }
 	| { type: 'SET_SETTING'; active: boolean }
+	| { type: 'SET_ERROR'; error: boolean }
 	| { type: 'SET_MUTED'; muted: boolean }
 	| { type: 'ADD_SEEK'; amount: number }
 	| { type: 'RESET_SEEK' }
