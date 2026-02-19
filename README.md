@@ -13,11 +13,13 @@ A modern, fully-featured, and mobile-friendly React video player component with 
 - 🔊 Volume control + mute toggle
 - 🎯 Multi-quality source switching (resumes from same timestamp)
 - ⚡ Playback speed control (0.25x – 4x)
+- 📡 HLS streaming support via `hls.js` (optional)
 - 🕒 Seek bar with buffered progress indicator
 - 🚀 Smooth UX with throttled interactions
 - 💡 Auto-hide controls on inactivity
 - 🧭 Landscape lock on fullscreen (mobile)
 - 🔄 Loading indicator on buffering
+- ❌ Error state UI when video fails to load
 - 🧩 Fully typed with TypeScript
 
 ---
@@ -65,6 +67,7 @@ export default function App() {
 | `source` | `string \| VideoSourceQuality[]` | ✅ | Single URL or array of quality sources |
 | `title` | `string` | ❌ | Video title shown in top bar |
 | `poster` | `string` | ❌ | Thumbnail image shown before playback |
+| `hls` | `boolean \| Partial<HlsConfig>` | ❌ | Enable HLS streaming via hls.js |
 
 ### VideoSourceQuality
 
@@ -94,6 +97,35 @@ type VideoSourceQuality = {
 
 ---
 
+## 📡 HLS Streaming
+
+HLS support requires `hls.js` to be installed separately (optional peer dependency):
+
+```bash
+npm install hls.js
+```
+
+```tsx
+// Basic HLS
+<VideoPlayer
+  title="Live Stream"
+  source="/stream.m3u8"
+  hls
+/>
+
+// HLS with custom config
+<VideoPlayer
+  title="Live Stream"
+  source="/stream.m3u8"
+  hls={{ maxBufferLength: 30 }}
+/>
+```
+
+> Safari uses native HLS automatically — `hls.js` is not required on Safari.
+> If `hls.js` is not installed and `hls` prop is set, falls back to native `src` with a console warning.
+
+---
+
 ## 🎥 Player Controls
 
 ### Desktop
@@ -114,6 +146,7 @@ type VideoSourceQuality = {
 | Double tap left | Seek backward 10s |
 | Double tap right | Seek forward 10s |
 | Consecutive taps | Stacked seek (±20s, ±30s, ...) |
+| Drag seek bar | Seek with live preview |
 
 ---
 
@@ -146,20 +179,21 @@ Works on:
 - Optimized re-rendering via `useReducer` + `useRef`
 - Stale closure prevention with refs for hot-path callbacks
 - Smart seek stacking with auto-reset
+- HLS loaded via dynamic `import()` — zero cost if unused
 - Minimal event listeners
 
 ---
 
 ## 🧪 Browser Support
 
-| Browser | Fullscreen | PiP | Orientation Lock |
-|---------|-----------|-----|-----------------|
-| Chrome | ✅ | ✅ | ✅ |
-| Edge | ✅ | ✅ | ✅ |
-| Firefox | ✅ | ✅ | ⚠️ Partial |
-| Safari (desktop) | ✅ | ✅ | — |
-| Mobile Safari | ✅ | ✅ (iPadOS) | ✅ |
-| Chrome Android | ✅ | ✅ | ✅ |
+| Browser | Fullscreen | PiP | HLS | Orientation Lock |
+|---------|-----------|-----|-----|-----------------|
+| Chrome | ✅ | ✅ | ✅ (hls.js) | ✅ |
+| Edge | ✅ | ✅ | ✅ (hls.js) | ✅ |
+| Firefox | ✅ | ✅ | ✅ (hls.js) | ⚠️ Partial |
+| Safari (desktop) | ✅ | ✅ | ✅ (native) | — |
+| Mobile Safari | ✅ | ✅ (iPadOS) | ✅ (native) | ✅ |
+| Chrome Android | ✅ | ✅ | ✅ (hls.js) | ✅ |
 
 ---
 
