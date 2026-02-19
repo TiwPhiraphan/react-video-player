@@ -1,7 +1,7 @@
 @font-face {
 	font-family: "ReactVideoPlayerFontFamily";
 	src: url("../fonts/Kodchasan.woff2") format("woff2");
-	font-weight: 400;
+	font-weight: 300;
 	font-style: normal;
 	font-display: swap;
 }
@@ -31,7 +31,7 @@
 	color: #fff;
 	margin: 0px;
 	padding: 0px;
-	font-weight: 400;
+	font-weight: 300;
 	font-style: normal;
 	box-sizing: border-box;
 	font-optical-sizing: auto;
@@ -269,7 +269,7 @@
 .PlayerSettingPanelQuality {
 	gap: 4px;
 	left: 50%;
-	width: 240px;
+	width: 300px;
 	bottom: 20px;
 	display: flex;
 	max-width: 80%;

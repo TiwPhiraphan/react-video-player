@@ -242,6 +242,20 @@ export function VideoPlayer({ title, poster, source, hls }: VideoPlayerProps) {
 		})
 	}, [])
 
+	const handleVolumeTouchMove = useCallback(
+		(e: React.TouchEvent<HTMLInputElement>) => {
+			if (!isMobile) return
+			withVideo((video) => {
+				showControls()
+				const target = e.currentTarget
+				const rect = target.getBoundingClientRect()
+				const x = e.touches[0].clientX - rect.left
+				const percentage = Math.min(Math.max(x / rect.width, 0), 1)
+				video.volume = percentage
+			})
+		}, [withVideo, showControls]
+	)
+
 	const handleVideoLoading = useCallback((loading: boolean) => {
 		dispatchUI({ type: 'SET_LOADING', loading })
 	}, [])
@@ -537,6 +551,7 @@ export function VideoPlayer({ title, poster, source, hls }: VideoPlayerProps) {
 								}
 								onFocus={(e) => e.currentTarget.blur()}
 								onChange={handleSeekVolume}
+								onTouchMove={handleVolumeTouchMove}
 								className={style.PlayerRangeVolume}
 								value={effectiveVolume}
 								type='range'
@@ -592,7 +607,7 @@ export function VideoPlayer({ title, poster, source, hls }: VideoPlayerProps) {
 					className={style.PlayerSettingPanel}
 					onClick={(e) => e.stopPropagation()}
 					style={{ display: uiState.settingPanel === null ? undefined : 'none' }}>
-					<div className={style.PlayerSettingList}>
+					<div className={style.PlayerSettingList} style={{ display: videoSourcesRef.current.length < 2 ? 'none' : undefined }}>
 						<SvgIcon name='quality' style={{ stroke: '#000' }} />
 						<div className={style.PlayerSettingDisplay} onClick={() => dispatchUI({ type: 'SET_SETTING_PANEL', name: 'quality' })}>
 							<span>Video quality</span>
