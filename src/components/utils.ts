@@ -109,7 +109,7 @@ export async function requestPictureInPicture(video: HTMLVideoElement): Promise<
 	}
 }
 
-export async function exitPictureInPicture(video: HTMLVideoElement): Promise<boolean> {
+export async function exitPictureInPicture(): Promise<boolean> {
 	if ('pictureInPictureElement' in document && document.pictureInPictureElement) {
 		try {
 			await document.exitPictureInPicture()

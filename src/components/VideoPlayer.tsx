@@ -112,7 +112,7 @@ export function VideoPlayer({ title, poster, source }: VideoPlayerProps) {
 	const handleTogglePIP = useCallback(async () => {
 		withVideo(async (video) => {
 			if (!isPictureInPictureSupported()) return
-			if (document.pictureInPictureElement === video) await exitPictureInPicture(video)
+			if (document.pictureInPictureElement === video) await exitPictureInPicture()
 			else await requestPictureInPicture(video)
 		})
 	}, [])
