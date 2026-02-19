@@ -92,7 +92,7 @@ export function isFullscreenSupported(): boolean {
 }
 
 export async function requestPictureInPicture(video: HTMLVideoElement): Promise<PictureInPictureWindow | null> {
-	if (!('pictureInPictureEnabled' in document) || typeof video.requestPictureInPicture !== 'function') {
+	if (!isPictureInPictureSupported()) {
 		console.error('Picture-in-Picture is not supported')
 		return null
 	}
@@ -110,7 +110,7 @@ export async function requestPictureInPicture(video: HTMLVideoElement): Promise<
 }
 
 export async function exitPictureInPicture(video: HTMLVideoElement): Promise<boolean> {
-	if (video.disablePictureInPicture === false && 'pictureInPictureElement' in document && document.pictureInPictureElement) {
+	if ('pictureInPictureElement' in document && document.pictureInPictureElement) {
 		try {
 			await document.exitPictureInPicture()
 			return true

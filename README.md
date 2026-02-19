@@ -7,15 +7,18 @@ A modern, fully-featured, and mobile-friendly React video player component with 
 ## ✨ Features
 
 - 🎮 Custom video controls (no native controls UI)
-- 📱 Mobile optimized (double-tap to seek ±10s)
+- 📱 Mobile optimized (double-tap to seek ±10s, touch to toggle controls)
 - ⌨️ Keyboard shortcuts support (desktop)
 - 🖥 Fullscreen & Picture-in-Picture (PiP)
 - 🔊 Volume control + mute toggle
+- 🎯 Multi-quality source switching (resumes from same timestamp)
+- ⚡ Playback speed control (0.25x – 4x)
 - 🕒 Seek bar with buffered progress indicator
 - 🚀 Smooth UX with throttled interactions
-- 💡 Auto hide controls on inactivity
+- 💡 Auto-hide controls on inactivity
 - 🧭 Landscape lock on fullscreen (mobile)
-- 🎯 Fully typed with TypeScript
+- 🔄 Loading indicator on buffering
+- 🧩 Fully typed with TypeScript
 
 ---
 
@@ -24,15 +27,11 @@ A modern, fully-featured, and mobile-friendly React video player component with 
 ```bash
 npm install @tiwz/react-video-player
 ```
-
 or
-
 ```bash
 bun add @tiwz/react-video-player
 ```
-
 or
-
 ```bash
 yarn add @tiwz/react-video-player
 ```
@@ -43,7 +42,7 @@ yarn add @tiwz/react-video-player
 
 ```tsx
 import { VideoPlayer } from '@tiwz/react-video-player'
-import '@tiwz/react-video-player/model.css'
+import '@tiwz/react-video-player/style.css'
 
 export default function App() {
   return (
@@ -57,19 +56,41 @@ export default function App() {
 
 ---
 
-## Video Types
-```ts
-type VideoTypes = 'video/mp4' | 'video/ogg' | 'video/webm' |'application/vnd.apple.mpegurl' | 'application/x-mpegURL'
-```
-
 ## 🧩 Props
+
 ### VideoPlayerProps
 
 | Prop | Type | Required | Description |
-|--------|------|----------|--------------|
-| `hls` | `boolean \| Partial<HlsConfig>` | ❌ | Using hls.js |
-| `title` | `string` | ❌ | Video title overlay |
-| `source` | `string \| { link: string; type?: VideoTypes }` | ✅ | Video source |
+|------|------|----------|-------------|
+| `source` | `string \| VideoSourceQuality[]` | ✅ | Single URL or array of quality sources |
+| `title` | `string` | ❌ | Video title shown in top bar |
+| `poster` | `string` | ❌ | Thumbnail image shown before playback |
+
+### VideoSourceQuality
+
+```ts
+type VideoSourceQuality = {
+  src: string      // Video URL
+  quality: number  // e.g. 1080, 720, 480. Use 0 for Auto
+}
+```
+
+**Example with multiple qualities:**
+
+```tsx
+<VideoPlayer
+  title="My Video"
+  poster="/thumbnail.jpg"
+  source={[
+    { src: '/video-1080p.mp4', quality: 1080 },
+    { src: '/video-720p.mp4',  quality: 720  },
+    { src: '/video-480p.mp4',  quality: 480  },
+    { src: '/video-auto.mp4',  quality: 0    }, // Auto
+  ]}
+/>
+```
+
+> Quality sources are automatically sorted highest to lowest. Switching quality resumes from the same timestamp.
 
 ---
 
@@ -78,22 +99,21 @@ type VideoTypes = 'video/mp4' | 'video/ogg' | 'video/webm' |'application/vnd.app
 ### Desktop
 
 | Action | Control |
-|---------|----------|
-| Play / Pause | Click center / Space |
-| Seek backward | ← Arrow (10s) |
-| Seek forward | → Arrow (10s) |
-| Fullscreen | F |
-| Picture-in-Picture | P |
-
----
+|--------|---------|
+| Play / Pause | Click center or `Space` |
+| Seek backward 10s | `←` Arrow |
+| Seek forward 10s | `→` Arrow |
+| Toggle fullscreen | `F` |
+| Toggle Picture-in-Picture | `P` |
 
 ### Mobile
 
 | Gesture | Action |
-|------------|---------|
-| Single Tap | Toggle controls |
-| Double Tap (Left) | Seek backward 10s |
-| Double Tap (Right) | Seek forward 10s |
+|---------|--------|
+| Single tap | Show / hide controls |
+| Double tap left | Seek backward 10s |
+| Double tap right | Seek forward 10s |
+| Consecutive taps | Stacked seek (±20s, ±30s, ...) |
 
 ---
 
@@ -101,49 +121,48 @@ type VideoTypes = 'video/mp4' | 'video/ogg' | 'video/webm' |'application/vnd.app
 
 Supports all modern browsers including:
 
-- Chrome
-- Edge
-- Firefox
-- Safari
-- Mobile Safari
-- Chrome Android
+- Chrome / Edge / Firefox
+- Safari (desktop)
+- Mobile Safari / Chrome Android
 
-Includes automatic **orientation lock** for landscape videos on mobile.
+Includes automatic **orientation lock** to landscape for landscape videos on mobile.
 
 ---
 
 ## 📺 Picture-in-Picture (PiP)
 
-Automatically enables PiP when supported by the browser.
-
 Works on:
 
-- Chrome
-- Edge
+- Chrome / Edge
 - Safari (desktop & iPadOS)
+
+> Automatically resumes playback when entering PiP if the video is paused.
 
 ---
 
 ## ⚡ Performance
 
-- Throttled mouse movement
-- Optimized re-rendering
-- Smart seek stacking
+- Throttled mouse movement (200ms)
+- Optimized re-rendering via `useReducer` + `useRef`
+- Stale closure prevention with refs for hot-path callbacks
+- Smart seek stacking with auto-reset
 - Minimal event listeners
 
 ---
 
 ## 🧪 Browser Support
 
-- Chrome
-- Edge
-- Firefox
-- Safari
-- Mobile Safari
-- Chrome Android
+| Browser | Fullscreen | PiP | Orientation Lock |
+|---------|-----------|-----|-----------------|
+| Chrome | ✅ | ✅ | ✅ |
+| Edge | ✅ | ✅ | ✅ |
+| Firefox | ✅ | ✅ | ⚠️ Partial |
+| Safari (desktop) | ✅ | ✅ | — |
+| Mobile Safari | ✅ | ✅ (iPadOS) | ✅ |
+| Chrome Android | ✅ | ✅ | ✅ |
 
 ---
 
 ## 📄 License
 
-MIT © tiwz
+MIT © 2026 tiwz
