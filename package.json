@@ -1,6 +1,6 @@
 {
 	"name": "@tiwz/react-video-player",
-	"version": "2.0.3",
+	"version": "2.0.4",
 	"author": "tiwz",
 	"repository": {
 		"type": "git",
@@ -29,13 +29,7 @@
 		"typescript": "^5.9.3"
 	},
 	"peerDependencies": {
-		"react": ">=19",
-		"hls.js": ">=1.0.0"
-	},
-	"peerDependenciesMeta": {
-		"hls.js": {
-			"optional": true
-		}
+		"react": ">=19"
 	},
 	"exports": {
 		".": {

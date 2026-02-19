@@ -1,3 +1,4 @@
+import Hls from 'hls.js'
 import type { ChangeEvent, CSSProperties, MouseEvent, SyntheticEvent } from 'react'
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { playbackReducer, UIReducer } from './reducer'
@@ -54,35 +55,35 @@ export function VideoPlayer({ title, poster, source, hls }: VideoPlayerProps) {
 		const video = videoRef.current
 		if (!video || !hls) return
 		const src = videoSourcesRef.current[quality].src
-		import('hls.js').then(({ default: Hls }) => {
-			if (!Hls.isSupported()) {
-				if (video.canPlayType('application/vnd.apple.mpegurl')) video.src = src
-				return
-			}
-			hlsRef.current?.destroy()
-			const instance = new Hls(typeof hls === 'object' ? hls : {})
-			hlsRef.current = instance
-			instance.loadSource(src)
-			instance.attachMedia(video)
-			instance.on(Hls.Events.ERROR, (_, data) => {
-				if (!data.fatal) return
-				switch (data.type) {
-					case Hls.ErrorTypes.NETWORK_ERROR:
-					case Hls.ErrorTypes.MEDIA_ERROR:
-						dispatchUI({ type: 'SET_ERROR', error: true })
-						break
-				}
-			})
-			instance.on(Hls.Events.MANIFEST_PARSED, () => {
-				if (resumeTimeRef.current > 0) {
-					video.currentTime = resumeTimeRef.current
-					video.play()
-				}
-			})
-		}).catch(() => {
-			console.warn('hls.js not installed: npm install hls.js')
+
+		if (video.canPlayType('application/vnd.apple.mpegurl')) {
 			video.src = src
+			return
+		}
+
+		if (!Hls.isSupported()) return
+
+		hlsRef.current?.destroy()
+		const instance = new Hls(typeof hls === 'object' ? hls : {})
+		hlsRef.current = instance
+		instance.loadSource(src)
+		instance.attachMedia(video)
+		instance.on(Hls.Events.ERROR, (_, data) => {
+			if (!data.fatal) return
+			switch (data.type) {
+				case Hls.ErrorTypes.NETWORK_ERROR:
+				case Hls.ErrorTypes.MEDIA_ERROR:
+					dispatchUI({ type: 'SET_ERROR', error: true })
+					break
+			}
 		})
+		instance.on(Hls.Events.MANIFEST_PARSED, () => {
+			if (resumeTimeRef.current > 0) {
+				video.currentTime = resumeTimeRef.current
+				video.play()
+			}
+		})
+
 		return () => { hlsRef.current?.destroy(); hlsRef.current = null }
 	}, [quality, hls])
 

@@ -13,7 +13,7 @@ A modern, fully-featured, and mobile-friendly React video player component with 
 - 🔊 Volume control + mute toggle
 - 🎯 Multi-quality source switching (resumes from same timestamp)
 - ⚡ Playback speed control (0.25x – 4x)
-- 📡 HLS streaming support via `hls.js` (optional)
+- 📡 HLS streaming support (built-in, no extra install needed)
 - 🕒 Seek bar with buffered progress indicator
 - 🚀 Smooth UX with throttled interactions
 - 💡 Auto-hide controls on inactivity
@@ -67,7 +67,7 @@ export default function App() {
 | `source` | `string \| VideoSourceQuality[]` | ✅ | Single URL or array of quality sources |
 | `title` | `string` | ❌ | Video title shown in top bar |
 | `poster` | `string` | ❌ | Thumbnail image shown before playback |
-| `hls` | `boolean \| Partial<HlsConfig>` | ❌ | Enable HLS streaming via hls.js |
+| `hls` | `boolean \| Partial<HlsConfig>` | ❌ | Enable HLS streaming |
 
 ### VideoSourceQuality
 
@@ -99,11 +99,7 @@ type VideoSourceQuality = {
 
 ## 📡 HLS Streaming
 
-HLS support requires `hls.js` to be installed separately (optional peer dependency):
-
-```bash
-npm install hls.js
-```
+HLS support is built-in — no extra packages needed.
 
 ```tsx
 // Basic HLS
@@ -121,8 +117,7 @@ npm install hls.js
 />
 ```
 
-> Safari uses native HLS automatically — `hls.js` is not required on Safari.
-> If `hls.js` is not installed and `hls` prop is set, falls back to native `src` with a console warning.
+> Safari uses native HLS automatically — hls.js is bypassed on Safari.
 
 ---
 
@@ -179,7 +174,6 @@ Works on:
 - Optimized re-rendering via `useReducer` + `useRef`
 - Stale closure prevention with refs for hot-path callbacks
 - Smart seek stacking with auto-reset
-- HLS loaded via dynamic `import()` — zero cost if unused
 - Minimal event listeners
 
 ---
@@ -188,12 +182,12 @@ Works on:
 
 | Browser | Fullscreen | PiP | HLS | Orientation Lock |
 |---------|-----------|-----|-----|-----------------|
-| Chrome | ✅ | ✅ | ✅ (hls.js) | ✅ |
-| Edge | ✅ | ✅ | ✅ (hls.js) | ✅ |
-| Firefox | ✅ | ✅ | ✅ (hls.js) | ⚠️ Partial |
+| Chrome | ✅ | ✅ | ✅ | ✅ |
+| Edge | ✅ | ✅ | ✅ | ✅ |
+| Firefox | ✅ | ✅ | ✅ | ⚠️ Partial |
 | Safari (desktop) | ✅ | ✅ | ✅ (native) | — |
 | Mobile Safari | ✅ | ✅ (iPadOS) | ✅ (native) | ✅ |
-| Chrome Android | ✅ | ✅ | ✅ (hls.js) | ✅ |
+| Chrome Android | ✅ | ✅ | ✅ | ✅ |
 
 ---
 

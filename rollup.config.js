@@ -51,8 +51,7 @@ export default [
 				declaration: false
 			}),
 			terser()
-		],
-		external: ['hls.js']
+		]
 	},
 	{
 		input: 'src/index.ts',
