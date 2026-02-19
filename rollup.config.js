@@ -28,9 +28,8 @@ export default [
 		],
 		plugins: [
 			peerDepsExternal(),
-			resolve(),
+			resolve({ browser: true }),
 			commonjs(),
-
 			postcss({
 				plugins: [
 					autoprefixer(),
@@ -47,14 +46,13 @@ export default [
 				autoModules: true,
 				to: 'dist/index.css'
 			}),
-
 			typescript({
 				tsconfig: './tsconfig.json',
 				declaration: false
 			}),
-
 			terser()
-		]
+		],
+		external: ['hls.js']
 	},
 	{
 		input: 'src/index.ts',
