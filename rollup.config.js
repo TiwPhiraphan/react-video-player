@@ -40,11 +40,11 @@ export default [
 					})
 				],
 				modules: true,
-				extract: 'index.css',
+				extract: 'VideoPlayer.css',
 				minimize: true,
 				sourceMap: false,
 				autoModules: true,
-				to: 'dist/index.css'
+				to: 'dist/VideoPlayer.css'
 			}),
 			typescript({
 				tsconfig: './tsconfig.json',
@@ -55,7 +55,7 @@ export default [
 	},
 	{
 		input: 'src/index.ts',
-		output: [{ file: 'dist/index.d.ts', format: 'esm' }],
+		output: [{ file: 'dist/VideoPlayer.d.ts', format: 'esm' }],
 		plugins: [dts()]
 	}
 ]

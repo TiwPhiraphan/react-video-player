@@ -19,7 +19,7 @@ import {
 	requestPictureInPicture
 } from './utils'
 
-export function VideoPlayer({ title, poster, source, hls }: VideoPlayerProps) {
+export function VideoPlayer({ title, poster, source, track, hls }: VideoPlayerProps) {
 	const resumeTimeRef = useRef(0)
 	const wrapperRef = useRef<HTMLDivElement>(null)
 	const videoRef = useRef<HTMLVideoElement>(null)
@@ -33,6 +33,7 @@ export function VideoPlayer({ title, poster, source, hls }: VideoPlayerProps) {
 		isPaused: true,
 		currentTime: 0,
 		durationTime: 0,
+		isLoaded: false,
 		playbackSpeed: 1
 	})
 
@@ -41,6 +42,7 @@ export function VideoPlayer({ title, poster, source, hls }: VideoPlayerProps) {
 		isMuted: false,
 		isError: false,
 		isLoading: true,
+		isSubtitle: true,
 		isSeekMode: false,
 		settingPanel: null,
 		isFullscreen: false,
@@ -50,6 +52,7 @@ export function VideoPlayer({ title, poster, source, hls }: VideoPlayerProps) {
 	})
 
 	const [quality, setQuality] = useState(0)
+	const [currentSubtitle, setCurrentSubtitle] = useState('')
 
 	useEffect(() => {
 		const video = videoRef.current
@@ -84,7 +87,10 @@ export function VideoPlayer({ title, poster, source, hls }: VideoPlayerProps) {
 			}
 		})
 
-		return () => { hlsRef.current?.destroy(); hlsRef.current = null }
+		return () => {
+			hlsRef.current?.destroy()
+			hlsRef.current = null
+		}
 	}, [quality, hls])
 
 	const withVideo = useCallback(async <T,>(operation: (video: HTMLVideoElement) => Promise<T> | T): Promise<T | null> => {
@@ -253,7 +259,8 @@ export function VideoPlayer({ title, poster, source, hls }: VideoPlayerProps) {
 				const percentage = Math.min(Math.max(x / rect.width, 0), 1)
 				video.volume = percentage
 			})
-		}, [withVideo, showControls]
+		},
+		[withVideo, showControls]
 	)
 
 	const handleVideoLoading = useCallback((loading: boolean) => {
@@ -386,6 +393,34 @@ export function VideoPlayer({ title, poster, source, hls }: VideoPlayerProps) {
 		[isMobile, uiState.isControlsVisible, showControls, hideControls]
 	)
 
+	useEffect(() => {
+		if (!playbackState.isLoaded) return
+		const video = videoRef.current
+		if (!video) return
+		const track = video.textTracks[0]
+		if (!track) return
+		track.mode = uiState.isSubtitle ? 'hidden' : 'disabled'
+		const handleCueChange = () => {
+			const cue = track.activeCues?.[0] as VTTCue | undefined
+			setCurrentSubtitle(cue?.text ?? '')
+		}
+		track.addEventListener('cuechange', handleCueChange)
+		return () => {
+			track.removeEventListener('cuechange', handleCueChange)
+		}
+	}, [playbackState.isLoaded])
+
+	useEffect(() => {
+		const video = videoRef.current
+		if (!video) return
+		const track = video.textTracks[0]
+		if (!track) return
+		track.mode = uiState.isSubtitle ? 'hidden' : 'disabled'
+		if (!uiState.isSubtitle) {
+			setCurrentSubtitle('')
+		}
+	}, [uiState.isSubtitle])
+
 	const isControlsShown = uiState.isControlsVisible
 	const effectiveVolume = uiState.isMuted ? 0 : playbackState.volume
 
@@ -448,6 +483,7 @@ export function VideoPlayer({ title, poster, source, hls }: VideoPlayerProps) {
 				ref={videoRef}
 				poster={poster}
 				controls={false}
+				preload='metadata'
 				onContextMenu={() => false}
 				className={style.PlayerVideo}
 				src={!hls ? videoSourcesRef.current[quality].src : undefined}
@@ -462,8 +498,17 @@ export function VideoPlayer({ title, poster, source, hls }: VideoPlayerProps) {
 				onPlay={() => dispatchPlayback({ type: 'SET_PAUSED', isPaused: false })}
 				onPause={() => dispatchPlayback({ type: 'SET_PAUSED', isPaused: true })}
 				onDurationChange={(e) => dispatchPlayback({ type: 'SET_DURATION', duration: e.currentTarget.duration })}
-				onLoadedMetadata={(e) => dispatchPlayback({ type: 'SET_DURATION', duration: e.currentTarget.duration })}
-			/>
+				onLoadedMetadata={(e) => {
+					dispatchPlayback({ type: 'SET_DURATION', duration: e.currentTarget.duration })
+					dispatchPlayback({ type: 'SET_LOADED', active: true })
+				}}>
+				{track && <track key={track.src} label='subtitles' kind='subtitles' id='subtitles' srcLang={track.lang} src={track.src} />}
+			</video>
+			<div
+				className={style.PlayerSubtitle + (isControlsShown ? ` ${style.SubtitleFloat}` : '')}
+				style={{ display: currentSubtitle === '' || !uiState.isSubtitle ? 'none' : undefined }}>
+				{currentSubtitle}
+			</div>
 			<div className={style.PlayerControls + (isControlsShown && !uiState.isError ? ` ${style.PlayerShown}` : '')}>
 				<div className={style.PlayerPanelTop}>
 					<article className={style.PlayerTitle}>{title}</article>
@@ -585,15 +630,9 @@ export function VideoPlayer({ title, poster, source, hls }: VideoPlayerProps) {
 						<SvgIcon name={uiState.isFullscreen ? 'exit-fullscreen' : 'fullscreen'} />
 					</button>
 				</div>
-				{uiState.isLoading ? (
-					<div className={style.PlayerLoading}>
-						<SvgIcon name='loading' style={{ width: '100%' }} />
-					</div>
-				) : (
-					<div className={style.PlayerCenter} data-no-toggle onClick={handleTogglePlayPause}>
-						<SvgIcon name={playbackState.isPaused ? 'play' : 'pause'} bigger />
-					</div>
-				)}
+				<div className={style.PlayerCenter} data-no-toggle onClick={handleTogglePlayPause}>
+					<SvgIcon name={playbackState.isPaused ? 'play' : 'pause'} bigger />
+				</div>
 			</div>
 			<div
 				className={style.PlayerSetting}
@@ -619,6 +658,13 @@ export function VideoPlayer({ title, poster, source, hls }: VideoPlayerProps) {
 						<div className={style.PlayerSettingDisplay} onClick={() => dispatchUI({ type: 'SET_SETTING_PANEL', name: 'speed' })}>
 							<span>Playback speed</span>
 							<span>{playbackState.playbackSpeed}x</span>
+						</div>
+					</div>
+					<div className={style.PlayerSettingList}>
+						<SvgIcon name='subtitle' style={{ stroke: '#000', display: 'block' }} />
+						<div className={style.PlayerSettingDisplay} onClick={() => dispatchUI({ type: 'SET_SUBTITLE', state: !uiState.isSubtitle })}>
+							<span>Subtitle</span>
+							<span>{uiState.isSubtitle ? 'on' : 'off'}</span>
 						</div>
 					</div>
 				</div>
@@ -688,6 +734,9 @@ export function VideoPlayer({ title, poster, source, hls }: VideoPlayerProps) {
 						))}
 					</div>
 				</div>
+			</div>
+			<div className={style.PlayerLoading} style={{ display: !uiState.isLoading || uiState.isControlsVisible ? 'none' : undefined }}>
+				<SvgIcon name='loading' style={{ width: '100%' }} />
 			</div>
 			{uiState.isError && (
 				<div className={style.PlayerError}>

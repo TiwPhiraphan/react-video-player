@@ -6,6 +6,10 @@ export type VideoSourceQuality = {
 }
 
 export type VideoPlayerProps = {
+	track?: {
+		lang: 'th' | 'en' | 'ja' | 'zh'
+		src: string
+	}
 	title?: string
 	poster?: string
 	hls?: boolean | Partial<HlsConfig>
@@ -15,6 +19,7 @@ export type VideoPlayerProps = {
 export type PlaybackState = {
 	volume: number
 	isPaused: boolean
+	isLoaded: boolean
 	currentTime: number
 	durationTime: number
 	playbackSpeed: number
@@ -22,9 +27,10 @@ export type PlaybackState = {
 
 export type PlaybackAction =
 	| { type: 'SET_VOLUME'; volume: number }
+	| { type: 'SET_LOADED'; active: boolean }
 	| { type: 'SET_PAUSED'; isPaused: boolean }
-	| { type: 'SET_DURATION'; duration: number }
 	| { type: 'SET_CURRENT_TIME'; time: number }
+	| { type: 'SET_DURATION'; duration: number }
 	| { type: 'SET_PLAYBACK_SPEED'; speed: number }
 
 export type UIState = {
@@ -32,6 +38,7 @@ export type UIState = {
 	isError: boolean
 	seekStack: number
 	isLoading: boolean
+	isSubtitle: boolean
 	isSeekMode: boolean
 	isFullscreen: boolean
 	isSettingsVisible: boolean
@@ -48,6 +55,7 @@ export type UIAction =
 	| { type: 'SET_FULLSCREEN'; active: boolean }
 	| { type: 'SET_LOADING'; loading: boolean }
 	| { type: 'SET_SETTING'; active: boolean }
+	| { type: 'SET_SUBTITLE'; state: boolean }
 	| { type: 'SET_ERROR'; error: boolean }
 	| { type: 'SET_MUTED'; muted: boolean }
 	| { type: 'ADD_SEEK'; amount: number }

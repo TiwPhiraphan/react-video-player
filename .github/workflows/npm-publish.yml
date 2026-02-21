@@ -16,14 +16,17 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v4
         with:
-          node-version: '22.x'
-          registry-url: https://registry.npmjs.org/
+          node-version: latest
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
       - name: Install Deps
-        run: npm install
+        run: bun install
       - name: Lint code
-        run: npm run lint
+        run: bun lint
       - name: Build component
-        run: npm run export
+        run: bun export
       - name: Publish package
         run: npm publish --provenance --access=public
         env:

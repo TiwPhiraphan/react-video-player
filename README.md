@@ -1,6 +1,6 @@
 # @tiwz/react-video-player
 
-A modern, fully-featured, and mobile-friendly React video player component with custom controls, double-tap seek, keyboard shortcuts, fullscreen, Picture-in-Picture (PiP), and smooth UX — built for both desktop and mobile.
+A modern, fully-featured, and mobile-friendly React video player component with custom controls, double-tap seek, keyboard shortcuts, fullscreen, Picture-in-Picture (PiP), subtitles, and smooth UX — built for both desktop and mobile.
 
 ---
 
@@ -15,6 +15,7 @@ A modern, fully-featured, and mobile-friendly React video player component with 
 - ⚡ Playback speed control (0.25x – 4x)
 - 📡 HLS streaming support (built-in, no extra install needed)
 - 🕒 Seek bar with buffered progress indicator
+- 💬 Subtitle / caption support (VTT format)
 - 🚀 Smooth UX with throttled interactions
 - 💡 Auto-hide controls on inactivity
 - 🧭 Landscape lock on fullscreen (mobile)
@@ -68,6 +69,7 @@ export default function App() {
 | `title` | `string` | ❌ | Video title shown in top bar |
 | `poster` | `string` | ❌ | Thumbnail image shown before playback |
 | `hls` | `boolean \| Partial<HlsConfig>` | ❌ | Enable HLS streaming |
+| `track` | `VideoTrack` | ❌ | Subtitle / caption track (VTT format) |
 
 ### VideoSourceQuality
 
@@ -75,6 +77,15 @@ export default function App() {
 type VideoSourceQuality = {
   src: string      // Video URL
   quality: number  // e.g. 1080, 720, 480. Use 0 for Auto
+}
+```
+
+### VideoTrack
+
+```ts
+type VideoTrack = {
+  src: string    // URL to .vtt subtitle file
+  lang: string   // BCP 47 language tag, e.g. 'en', 'th'
 }
 ```
 
@@ -94,6 +105,24 @@ type VideoSourceQuality = {
 ```
 
 > Quality sources are automatically sorted highest to lowest. Switching quality resumes from the same timestamp.
+
+---
+
+## 💬 Subtitles
+
+Subtitle support uses the WebVTT format. Pass a `track` prop with the URL to your `.vtt` file and the language code.
+
+```tsx
+<VideoPlayer
+  title="My Video"
+  source="/video.mp4"
+  track={{ src: '/subtitles-en.vtt', lang: 'en' }}
+/>
+```
+
+Users can toggle subtitles on/off from the **Settings** panel in the player. Subtitles are displayed as an overlay above the controls, and will float up when the control bar is visible.
+
+> **Note:** The `.vtt` file must be served from the same origin or with CORS headers to be loaded correctly by the browser.
 
 ---
 
@@ -145,6 +174,18 @@ HLS support is built-in — no extra packages needed.
 
 ---
 
+## ⚙️ Settings Panel
+
+The gear icon opens the settings panel with the following options:
+
+| Setting | Description |
+|---------|-------------|
+| **Video quality** | Switch between available quality levels (shown only when multiple sources are provided) |
+| **Playback speed** | Adjust speed from 0.25x to 4x |
+| **Subtitle** | Toggle subtitles on/off (shown only when a `track` is provided) |
+
+---
+
 ## 🖥 Fullscreen
 
 Supports all modern browsers including:
@@ -180,14 +221,14 @@ Works on:
 
 ## 🧪 Browser Support
 
-| Browser | Fullscreen | PiP | HLS | Orientation Lock |
-|---------|-----------|-----|-----|-----------------|
-| Chrome | ✅ | ✅ | ✅ | ✅ |
-| Edge | ✅ | ✅ | ✅ | ✅ |
-| Firefox | ✅ | ✅ | ✅ | ⚠️ Partial |
-| Safari (desktop) | ✅ | ✅ | ✅ (native) | — |
-| Mobile Safari | ✅ | ✅ (iPadOS) | ✅ (native) | ✅ |
-| Chrome Android | ✅ | ✅ | ✅ | ✅ |
+| Browser | Fullscreen | PiP | HLS | Subtitles | Orientation Lock |
+|---------|-----------|-----|-----|-----------|-----------------|
+| Chrome | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Edge | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Firefox | ✅ | ✅ | ✅ | ✅ | ⚠️ Partial |
+| Safari (desktop) | ✅ | ✅ | ✅ (native) | ✅ | — |
+| Mobile Safari | ✅ | ✅ (iPadOS) | ✅ (native) | ✅ | ✅ |
+| Chrome Android | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ---
 

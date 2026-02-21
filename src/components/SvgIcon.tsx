@@ -11,6 +11,7 @@ type SvgIconProps = {
 		| 'quality'
 		| 'loading'
 		| 'playback'
+		| 'subtitle'
 		| 'fullscreen'
 		| 'exit-fullscreen'
 		| 'picture-in-picture'
@@ -143,6 +144,18 @@ export default function SvgIcon({ name, style, bigger }: SvgIconProps) {
 						clipRule='evenodd'
 					/>
 				)}
+				{name === 'subtitle' && (
+					<>
+						<rect x='3' y='6' width='18' height='12' rx='2' />
+						<g transform='translate(1, 0)'>
+							<path
+								d='M9.5 12a1.5 1.5 0 1 1 0-2.5M9.5 12a1.5 1.5 0 1 0 0 2.5M14.5 12a1.5 1.5 0 1 1 0-2.5M14.5 12a1.5 1.5 0 1 0 0 2.5'
+								strokeLinecap='round'
+								strokeLinejoin='round'
+							/>
+						</g>
+					</>
+				)}
 				{name === 'setting' && (
 					<>
 						<path
@@ -206,7 +219,11 @@ export default function SvgIcon({ name, style, bigger }: SvgIconProps) {
 					</>
 				)}
 				{name === 'error' && (
-					<path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+					<path
+						strokeLinecap='round'
+						strokeLinejoin='round'
+						d='M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z'
+					/>
 				)}
 				{name === 'plus' && <path strokeLinecap='round' strokeLinejoin='round' d='M12 4.5v15m7.5-7.5h-15' />}
 				{name === 'minus' && <path strokeLinecap='round' strokeLinejoin='round' d='M5 12h14' />}

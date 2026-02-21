@@ -8,6 +8,8 @@ export function playbackReducer(state: PlaybackState, action: PlaybackAction): P
 			return { ...state, isPaused: action.isPaused }
 		case 'SET_DURATION':
 			return { ...state, durationTime: action.duration }
+		case 'SET_LOADED':
+			return { ...state, isLoaded: action.active }
 		case 'SET_CURRENT_TIME':
 			return { ...state, currentTime: action.time }
 		case 'SET_PLAYBACK_SPEED':
@@ -35,6 +37,8 @@ export function UIReducer(state: UIState, action: UIAction) {
 			return { ...state, isMuted: action.muted }
 		case 'SET_ERROR':
 			return { ...state, isError: action.error, isLoading: false }
+		case 'SET_SUBTITLE':
+			return { ...state, isSubtitle: action.state }
 		case 'ADD_SEEK':
 			return {
 				...state,
