@@ -78,7 +78,7 @@
 	opacity: 1;
 	cursor: default;
 	visibility: visible;
-	background-color: #0006;
+	background-color: #0004;
 }
 
 .PlayerPanelTop {
@@ -90,7 +90,7 @@
 
 .PlayerTitle {
 	flex: 1;
-	font-size: 12pt;
+	font-size: 14pt;
 	overflow-x: hidden;
 	white-space: nowrap;
 	text-overflow: ellipsis;
@@ -268,9 +268,10 @@
 .PlayerSettingPanelSpeed,
 .PlayerSettingPanelQuality {
 	gap: 4px;
-	left: 50%;
+	top: 50px;
+	z-index: 4;
+	right: 30px;
 	width: 300px;
-	bottom: 20px;
 	display: flex;
 	max-width: 80%;
 	padding: 10px 8px;
@@ -278,7 +279,6 @@
 	border-radius: 10px;
 	flex-direction: column;
 	background-color: white;
-	transform: translateX(-50%);
 }
 
 .PlayerSettingPanel *,
@@ -288,7 +288,13 @@
 }
 
 .PlayerSettingPanelQuality {
-	max-height: calc(100% - 40px);
+	width: 20ch;
+	overflow-y: auto;
+	max-height: calc(100% - 100px);
+}
+
+.PlayerSettingPanelSpeed {
+	padding-block: 15px;
 }
 
 .PlayerSettingList {
@@ -462,7 +468,7 @@
 	.seekRight {
 		font-size: 18pt;
 	}
-	.PlayerSubtitle {
+	.PlayerSubtitle, .PlayerTitle {
 		font-size: 12pt;
 	}
 }

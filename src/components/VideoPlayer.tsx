@@ -114,7 +114,6 @@ export function VideoPlayer({ title, poster, source, track, hls }: VideoPlayerPr
 	}, [playbackState.currentTime, uiState.isControlsVisible])
 
 	const handleTimeUpdate = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
-		if (!isControlsVisibleRef.current) return
 		const newTime = event.currentTarget.currentTime
 		const timeDifference = Math.abs(newTime - currentTimeRef.current)
 		if (timeDifference > 1 || Math.floor(newTime) !== Math.floor(currentTimeRef.current)) {
@@ -183,14 +182,14 @@ export function VideoPlayer({ title, poster, source, track, hls }: VideoPlayerPr
 
 	const seekToTime = useCallback(
 		(time: number) => {
-			if (!uiState.isControlsVisible) return
+			if (!isControlsVisibleRef.current) return
 			withVideo((video) => {
 				video.currentTime = time
 				dispatchPlayback({ type: 'SET_CURRENT_TIME', time })
 				showControls()
 			})
 		},
-		[withVideo, uiState.isControlsVisible, showControls]
+		[withVideo, isControlsVisibleRef, showControls]
 	)
 
 	const throttledMouseMove = useMemo(
@@ -371,14 +370,14 @@ export function VideoPlayer({ title, poster, source, track, hls }: VideoPlayerPr
 				seekVideo(direction)
 			} else {
 				singleTapTimerRef.current = setTimeout(() => {
-					if (uiState.isControlsVisible) hideControls()
+					if (isControlsVisibleRef.current) hideControls()
 					else showControls()
 					singleTapTimerRef.current = null
 				}, 300)
 			}
 			lastDoubleTapTimeRef.current = now
 		},
-		[isMobile, uiState.isSeekMode, uiState.isControlsVisible, seekVideo, showControls, hideControls]
+		[isMobile, uiState.isSeekMode, isControlsVisibleRef, seekVideo, showControls, hideControls]
 	)
 
 	const handleTouchEnd = useCallback(
@@ -387,10 +386,10 @@ export function VideoPlayer({ title, poster, source, track, hls }: VideoPlayerPr
 			const target = e.target as HTMLElement
 			const isInteractive = target.closest('button, input, [data-no-toggle=true]')
 			if (isInteractive) return showControls()
-			if (uiState.isControlsVisible) hideControls()
+			if (isControlsVisibleRef.current) hideControls()
 			else showControls()
 		},
-		[isMobile, uiState.isControlsVisible, showControls, hideControls]
+		[isMobile, isControlsVisibleRef, showControls, hideControls]
 	)
 
 	useEffect(() => {
@@ -421,7 +420,7 @@ export function VideoPlayer({ title, poster, source, track, hls }: VideoPlayerPr
 		}
 	}, [uiState.isSubtitle])
 
-	const isControlsShown = uiState.isControlsVisible
+	const isControlsShown = isControlsVisibleRef.current || uiState.isSettingsVisible
 	const effectiveVolume = uiState.isMuted ? 0 : playbackState.volume
 
 	useEffect(() => {
@@ -640,8 +639,7 @@ export function VideoPlayer({ title, poster, source, track, hls }: VideoPlayerPr
 				onClick={() => {
 					dispatchUI({ type: 'SET_SETTING', active: false })
 					dispatchUI({ type: 'SET_SETTING_PANEL', name: null })
-				}}
-				onMouseMove={(e) => e.stopPropagation()}>
+				}}>
 				<div
 					className={style.PlayerSettingPanel}
 					onClick={(e) => e.stopPropagation()}
@@ -660,7 +658,7 @@ export function VideoPlayer({ title, poster, source, track, hls }: VideoPlayerPr
 							<span>{playbackState.playbackSpeed}x</span>
 						</div>
 					</div>
-					<div className={style.PlayerSettingList}>
+					<div className={style.PlayerSettingList} style={{ display: !track ? 'none' : undefined }}>
 						<SvgIcon name='subtitle' style={{ stroke: '#000', display: 'block' }} />
 						<div className={style.PlayerSettingDisplay} onClick={() => dispatchUI({ type: 'SET_SUBTITLE', state: !uiState.isSubtitle })}>
 							<span>Subtitle</span>
@@ -735,7 +733,7 @@ export function VideoPlayer({ title, poster, source, track, hls }: VideoPlayerPr
 					</div>
 				</div>
 			</div>
-			<div className={style.PlayerLoading} style={{ display: !uiState.isLoading || uiState.isControlsVisible ? 'none' : undefined }}>
+			<div className={style.PlayerLoading} style={{ display: !uiState.isLoading || isControlsShown ? 'none' : undefined }}>
 				<SvgIcon name='loading' style={{ width: '100%' }} />
 			</div>
 			{uiState.isError && (
