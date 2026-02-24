@@ -43,7 +43,6 @@
 
 .PlayerWrapper {
 	width: 100%;
-	cursor: none;
 	display: flex;
 	user-select: none;
 	position: relative;
@@ -71,12 +70,11 @@
 	visibility: hidden;
 	flex-direction: column;
 	background-color: #0000;
-	transition: background-color 400ms ease;
+	transition: background-color 200ms ease;
 }
 
 .PlayerControls.PlayerShown {
 	opacity: 1;
-	cursor: default;
 	visibility: visible;
 	background-color: #0004;
 }

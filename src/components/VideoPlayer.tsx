@@ -110,8 +110,7 @@ export function VideoPlayer({ title, poster, source, track, hls }: VideoPlayerPr
 
 	useEffect(() => {
 		currentTimeRef.current = playbackState.currentTime
-		isControlsVisibleRef.current = uiState.isControlsVisible
-	}, [playbackState.currentTime, uiState.isControlsVisible])
+	}, [playbackState.currentTime])
 
 	const handleTimeUpdate = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
 		const newTime = event.currentTarget.currentTime
@@ -162,6 +161,7 @@ export function VideoPlayer({ title, poster, source, track, hls }: VideoPlayerPr
 	}, [])
 
 	const hideControls = useCallback(() => {
+		isControlsVisibleRef.current = false
 		dispatchUI({ type: 'SET_CONTROLS_VISIBLE', visible: false })
 		if (controlHideTimerRef.current) {
 			clearTimeout(controlHideTimerRef.current)
@@ -170,7 +170,8 @@ export function VideoPlayer({ title, poster, source, track, hls }: VideoPlayerPr
 	}, [])
 
 	const showControls = useCallback(
-		(hideDelayMs = 2500) => {
+		(hideDelayMs = 3000) => {
+			isControlsVisibleRef.current = true
 			if (controlHideTimerRef.current) {
 				clearTimeout(controlHideTimerRef.current)
 			}
@@ -196,17 +197,13 @@ export function VideoPlayer({ title, poster, source, track, hls }: VideoPlayerPr
 		() =>
 			createThrottle(() => {
 				showControls()
-			}, 200),
+			}, 300),
 		[showControls]
 	)
 
 	const handleMouseMove = useCallback(() => {
 		throttledMouseMove()
 	}, [throttledMouseMove])
-
-	const handleMouseLeave = useCallback(() => {
-		hideControls()
-	}, [hideControls])
 
 	const handleProgressBarHover = useCallback(
 		(e: MouseEvent<HTMLInputElement>) => {
@@ -474,9 +471,9 @@ export function VideoPlayer({ title, poster, source, track, hls }: VideoPlayerPr
 	return (
 		<div
 			ref={wrapperRef}
-			onMouseMove={!isMobile && !uiState.isError ? handleMouseMove : undefined}
-			onMouseLeave={!isMobile && !uiState.isError ? handleMouseLeave : undefined}
-			onTouchEnd={isMobile && !uiState.isError ? handleTouchEnd : undefined}
+			onMouseMove={(!isMobile && !uiState.isError) ? handleMouseMove : undefined}
+			onMouseLeave={(!isMobile && !uiState.isError) ? hideControls : undefined}
+			onTouchEnd={(isMobile && !uiState.isError) ? handleTouchEnd : undefined}
 			className={style.PlayerWrapper + (!isMobile ? ` ${style.PlayerDesktop}` : '')}>
 			<video
 				ref={videoRef}
