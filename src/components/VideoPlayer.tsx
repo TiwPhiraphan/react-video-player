@@ -684,7 +684,7 @@ export function VideoPlayer({ title, poster, source, track, hls }: VideoPlayerPr
 						<input
 							max={4}
 							min={0.25}
-							step={0.25}
+							step={0.05}
 							type='range'
 							onFocus={(e) => e.currentTarget.blur()}
 							style={
