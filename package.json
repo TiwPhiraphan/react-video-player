@@ -1,6 +1,6 @@
 {
   "name": "@tiwz/react-video-player",
-  "version": "2.0.9",
+  "version": "2.1.0",
   "description": "A modern, mobile-friendly React video player with HLS streaming, multi-quality switching, subtitles, Picture-in-Picture, fullscreen, and custom controls",
   "author": "tiwz",
   "license": "MIT",
